@@ -1,0 +1,34 @@
+{
+  "completed_properties": [
+    "density",
+    "self-diffusion",
+    "cp",
+    "compressibility",
+    "bulk_modulus",
+    "volume_expansion",
+    "linear_expansion",
+    "static_dielectric_const",
+    "refractive_index",
+    "thermal_diffusivity",
+    "tg"
+  ],
+  "failed_properties": {
+    "thermal_conductivity": "command exited with status 1"
+  },
+  "input": "/Users/jz/Documents/torch-molecule/data_process/output/rppd_clean.csv",
+  "requested_properties": [
+    "density",
+    "self-diffusion",
+    "cp",
+    "compressibility",
+    "bulk_modulus",
+    "volume_expansion",
+    "linear_expansion",
+    "static_dielectric_const",
+    "refractive_index",
+    "thermal_conductivity",
+    "thermal_diffusivity",
+    "tg"
+  ],
+  "skipped_properties": {}
+}

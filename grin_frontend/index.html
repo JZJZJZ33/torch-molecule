@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="HKRI Polymer Studio — AI property prediction for polymer materials." />
+    <title>HKRI Polymer Studio</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script src="/static/app.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="HKRI Polymer Studio home"><span class="brand-code">HKRI</span><span class="brand-divider"></span><span>Polymer Studio</span></a>
+      <nav class="header-nav" aria-label="Primary navigation">
+        <a class="active" href="#predictor" aria-current="page">Predictor</a>
+        <a class="upcoming" href="#" aria-disabled="true">Generator <small>SOON</small></a>
+      </nav>
+      <div class="service-status" id="service-status"><span class="status-dot"></span><span id="status-text">Checking models</span></div>
+    </header>
+    <main>
+      <section class="page-heading">
+        <div class="breadcrumb">HKRI Polymer Studio <span>/</span> Property Predictor</div>
+        <h1>Polymer Property Predictor</h1>
+        <p>Enter a pSMILES structure to calculate available GRIN property predictions and view its RDKit representation.</p>
+      </section>
+      <section id="predictor" class="search-section" aria-label="Polymer prediction search">
+        <label for="smiles-input">Search by polymer SMILES</label>
+        <div class="search-bar">
+          <input id="smiles-input" type="text" spellcheck="false" value="*CC(*)c1ccccc1" placeholder="Enter pSMILES containing polymerization points (*)" />
+          <button id="predict-button" class="search-button" type="button"><span>Predict properties</span><span aria-hidden="true">→</span></button>
+        </div>
+        <div class="search-meta"><span>EXAMPLES</span><button class="example-button" type="button" data-smiles="*CC(*)c1ccccc1">Polystyrene</button><button class="example-button" type="button" data-smiles="*CC(*)C(=O)O">Acrylate</button><span class="search-hint">Press Enter to search</span></div>
+        <p class="error-message" id="error-message" role="alert"></p>
+      </section>
+
+      <section class="structure-section" aria-labelledby="structure-title">
+        <div class="section-heading"><div><p class="section-number">STRUCTURE</p><h2 id="structure-title">2D molecular structure</h2></div><span class="tag">RDKit</span></div>
+        <div id="structure-canvas" class="structure-canvas" aria-live="polite"><div class="empty-state"><div class="empty-hexagon" aria-hidden="true"></div><p>Submit a pSMILES to generate its structure.</p></div></div>
+      </section>
+      <section class="results-section" aria-labelledby="results-title">
+        <div class="results-heading"><div><p class="section-number">03</p><h2 id="results-title">Property prediction report</h2></div><p id="results-summary">Submit a pSMILES to run every available model.</p></div>
+        <div class="property-table-wrap">
+          <table class="property-table">
+            <thead><tr><th>Property</th><th>中文名称</th><th>Symbol</th><th class="numeric-column">Predicted value</th><th>Unit</th></tr></thead>
+            <tbody id="property-grid"><tr class="results-placeholder"><td colspan="5">Awaiting prediction</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="upcoming-tools" aria-label="Upcoming tools">
+        <strong>Additional tools in development:</strong>
+        <span>Polymer generation</span><span>Synthesis design</span><span>Electrode formulation prediction</span>
+      </section>
+    </main>
+    <footer><span>HKRI Polymer Studio · GRIN / torch-molecule</span><span>Research use · Original RPPD units</span></footer>
+  </body>
+</html>

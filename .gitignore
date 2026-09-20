@@ -171,3 +171,22 @@ examples/prediction/train_GREA_for_gas.py
 tools/
 **/*.bak
 procedure.txt
+
+# macOS metadata
+.DS_Store
+**/.DS_Store
+
+# Generated preprocessing artifacts. The source export and cleaned dataset used
+# for the first server deployment are intentionally versioned.
+data_process/output/*
+!data_process/output/.gitkeep
+!data_process/output/rppd_clean.csv
+!data_process/output/rppd_clean.metadata.json
+
+# Ignore legacy and future training runs, but retain the first standardized run
+# needed by the deployed API.
+train_grin/output/
+train_grin/output_standardized/*
+!train_grin/output_standardized/.gitkeep
+!train_grin/output_standardized/run_20260921_003803/
+!train_grin/output_standardized/run_20260921_003803/**

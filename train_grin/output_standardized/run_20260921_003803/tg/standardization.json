@@ -1,0 +1,8 @@
+{
+  "fitted_on": "training split only",
+  "forward_transform": "standardized = (original - mean) / std",
+  "inverse_transform": "original = standardized * std + mean",
+  "mean": 565.0495333093068,
+  "std": 224.91664387413954,
+  "target": "tg"
+}

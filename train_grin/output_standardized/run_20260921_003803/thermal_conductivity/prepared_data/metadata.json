@@ -1,0 +1,19 @@
+{
+  "aggregation": "median",
+  "input": "/Users/jz/Documents/torch-molecule/data_process/output/rppd_clean.csv",
+  "model": "GRINMolecularPredictor",
+  "outlier_iqr": 3.0,
+  "rows_before_outlier_filter": 514,
+  "seed": 42,
+  "split_rows": {
+    "test": 101,
+    "train": 353,
+    "validation": 51
+  },
+  "target": "thermal_conductivity",
+  "target_transform": {
+    "mean": 0.23002850907664282,
+    "std": 0.0531255165700874
+  },
+  "unique_structures": 505
+}

@@ -1,0 +1,43 @@
+{
+  "best_epoch_one_based": 82,
+  "device": "cpu",
+  "epochs_completed": 123,
+  "metrics": {
+    "test": {
+      "mae": 6.479875545170561e-11,
+      "mse": 8.340069868328543e-21,
+      "r2": 0.3609624743615687,
+      "rmse": 9.132398298545975e-11
+    },
+    "train": {
+      "mae": 4.112019257889919e-11,
+      "mse": 4.002078336969218e-21,
+      "r2": 0.6270847976392278,
+      "rmse": 6.326198176605929e-11
+    },
+    "validation": {
+      "mae": 5.625668325692653e-11,
+      "mse": 7.658175586775025e-21,
+      "r2": 0.5139603843258693,
+      "rmse": 8.751100266123698e-11
+    }
+  },
+  "model_parameters": {
+    "batch_size": 32,
+    "epochs_to_penalize": 100,
+    "hidden_size": 128,
+    "l1_penalty": 0.001,
+    "learning_rate": 0.001,
+    "maximum_epochs": 300,
+    "num_layer": 3,
+    "patience": 40,
+    "repetition_augmentation": false
+  },
+  "seed": 42,
+  "target": "compressibility",
+  "target_transform": {
+    "mean": 3.79398067905687e-10,
+    "std": 1.0359475043380809e-10
+  },
+  "target_units": "original RPPD units"
+}

@@ -1,0 +1,43 @@
+{
+  "best_epoch_one_based": 83,
+  "device": "cpu",
+  "epochs_completed": 124,
+  "metrics": {
+    "test": {
+      "mae": 0.09720940408851914,
+      "mse": 0.026245127570067514,
+      "r2": 0.6054481698991518,
+      "rmse": 0.16200348011714907
+    },
+    "train": {
+      "mae": 0.07963447809900663,
+      "mse": 0.021634610463402443,
+      "r2": 0.7260496890785069,
+      "rmse": 0.14708708462472986
+    },
+    "validation": {
+      "mae": 0.11584096405535829,
+      "mse": 0.037346994546646674,
+      "r2": 0.7422948174756459,
+      "rmse": 0.19325370513044937
+    }
+  },
+  "model_parameters": {
+    "batch_size": 32,
+    "epochs_to_penalize": 100,
+    "hidden_size": 128,
+    "l1_penalty": 0.001,
+    "learning_rate": 0.001,
+    "maximum_epochs": 300,
+    "num_layer": 3,
+    "patience": 40,
+    "repetition_augmentation": false
+  },
+  "seed": 42,
+  "target": "static_dielectric_const",
+  "target_transform": {
+    "mean": 1.2898273165778367,
+    "std": 0.28102091349278124
+  },
+  "target_units": "original RPPD units"
+}

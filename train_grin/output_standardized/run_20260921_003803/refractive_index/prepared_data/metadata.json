@@ -1,0 +1,19 @@
+{
+  "aggregation": "median",
+  "input": "/Users/jz/Documents/torch-molecule/data_process/output/rppd_clean.csv",
+  "model": "GRINMolecularPredictor",
+  "outlier_iqr": 3.0,
+  "rows_before_outlier_filter": 522,
+  "seed": 42,
+  "split_rows": {
+    "test": 105,
+    "train": 364,
+    "validation": 53
+  },
+  "target": "refractive_index",
+  "target_transform": {
+    "mean": 1.5328211221019201,
+    "std": 0.07950987512115473
+  },
+  "unique_structures": 522
+}

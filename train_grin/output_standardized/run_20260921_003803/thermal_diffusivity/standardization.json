@@ -1,0 +1,8 @@
+{
+  "fitted_on": "training split only",
+  "forward_transform": "standardized = (original - mean) / std",
+  "inverse_transform": "original = standardized * std + mean",
+  "mean": 6.70318568844556e-08,
+  "std": 1.3734176221229407e-08,
+  "target": "thermal_diffusivity"
+}

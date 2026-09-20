@@ -66,6 +66,99 @@ See the [List of Supported Models](#list-of-supported-models) section for all av
 
 **For models that require `transformers`:** `pip install transformers`
 
+## HKRI Polymer Studio workflow
+
+This repository also contains a local RPPD-to-GRIN workflow and a single web
+application for serving all trained polymer-property models. The source code is
+organized as follows:
+
+```text
+data_process/   RPPD inspection, cleaning, and leakage-safe data preparation
+train_grin/     standardized multi-property GRIN training and evaluation
+grin_api/       FastAPI model service and RDKit structure rendering
+grin_frontend/  Predictor interface served by the API
+```
+
+The repository includes the source RPPD export, cleaned dataset, and first
+standardized model run required for server deployment. Temporary prepared splits
+and future timestamped training runs are excluded from Git until deliberately
+selected for a release.
+
+### Local setup (Apple Silicon or CPU)
+
+```bash
+conda create --name torch-molecule python=3.11.7 -y
+conda activate torch-molecule
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install -r requirements.txt
+python -m pip install --no-build-isolation torch-scatter
+```
+
+`torch-scatter` must be installed after PyTorch. On CUDA servers, use the wheel
+matching the installed PyTorch/CUDA versions from the
+[PyG installation guide](https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html).
+
+### NVIDIA H20 server setup
+
+The H20 should use a CUDA-enabled PyTorch build. Check the installed NVIDIA driver
+first with `nvidia-smi`, then select a supported CUDA wheel from the
+[PyTorch installation page](https://pytorch.org/get-started/locally/). For a
+CUDA 12.8 deployment:
+
+```bash
+conda create --name torch-molecule python=3.11.7 -y
+conda activate torch-molecule
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install torch --index-url https://download.pytorch.org/whl/cu128
+python -m pip install -r requirements.txt
+
+TORCH_VERSION=$(python -c 'import torch; print(torch.__version__.split("+")[0])')
+python -m pip install torch-scatter \
+  -f "https://data.pyg.org/whl/torch-${TORCH_VERSION}+cu128.html"
+```
+
+Confirm that PyTorch can see the H20:
+
+```bash
+python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+```
+
+### Prepare data and train models
+
+Place the RPPD CSV at the repository root, then run:
+
+```bash
+python data_process/clean_rppd.py 20260920_rppd.csv
+python train_grin/train.py --list-properties
+python train_grin/train.py --all --device cpu  # use --device cuda on the H20
+```
+
+Training standardizes each target using training-split statistics and saves the
+inverse-transform parameters with every checkpoint. Each timestamped property
+directory also contains original-unit MAE, MSE, RMSE and R² metrics, prediction
+CSVs, a scatter plot, and a training-loss plot. Train selected targets with one
+or more `--property` arguments instead of `--all`.
+
+### Run the predictor application
+
+```bash
+GRIN_MODEL_RUN_DIR="$PWD/train_grin/output_standardized/run_20260921_003803" \
+GRIN_API_DEVICE=cpu \
+python -m uvicorn grin_api.app:app \
+  --host 127.0.0.1 --port 8000 --reload \
+  --reload-dir grin_api --reload-dir grin_frontend
+```
+
+Set `GRIN_API_DEVICE=cuda` when serving on the H20.
+
+Open `http://127.0.0.1:8000`. The same process hosts the API, frontend, all
+available property models, and RDKit structure drawing. Model inference is local
+and does not require Hugging Face access.
+
+See [`data_process/README.md`](data_process/README.md),
+[`train_grin/README.md`](train_grin/README.md), and
+[`grin_api/README.md`](grin_api/README.md) for detailed options and API examples.
+
 ## Usage
 
 > More examples can be found in the `examples` and `tests` folders.
