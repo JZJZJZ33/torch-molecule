@@ -24,8 +24,7 @@ from typing import Any
 
 import numpy as np
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, Response
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse, Response
 from pydantic import BaseModel, Field
 from rdkit import Chem
 from rdkit.Chem import rdDepictor
@@ -237,19 +236,28 @@ app = FastAPI(
 async def disable_frontend_cache(request, call_next):
     """Always expose current local frontend files while the studio is in development."""
     response = await call_next(request)
-    if request.url.path == "/" or request.url.path.startswith("/static/"):
+    if request.url.path == "/":
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
     return response
 
 
-app.mount("/static", StaticFiles(directory=FRONTEND_ROOT), name="static")
-
-
 @app.get("/", include_in_schema=False)
-def frontend() -> FileResponse:
-    return FileResponse(FRONTEND_ROOT / "index.html")
+def frontend() -> HTMLResponse:
+    """Return one self-contained page with no external CSS or JavaScript files."""
+    html = (FRONTEND_ROOT / "index.html").read_text(encoding="utf-8")
+    styles = (FRONTEND_ROOT / "styles.css").read_text(encoding="utf-8")
+    script = (FRONTEND_ROOT / "app.js").read_text(encoding="utf-8")
+    html = html.replace(
+        '<link rel="stylesheet" href="/static/styles.css" />',
+        f"<style>\n{styles}\n</style>",
+    )
+    html = html.replace(
+        '<script src="/static/app.js" defer></script>',
+        f"<script defer>\n{script}\n</script>",
+    )
+    return HTMLResponse(html)
 
 
 @app.get("/health")

@@ -152,8 +152,9 @@ python -m uvicorn grin_api.app:app \
 Set `GRIN_API_DEVICE=cuda` when serving on the H20.
 
 Open `http://127.0.0.1:8000`. The same process hosts the API, frontend, all
-available property models, and RDKit structure drawing. Model inference is local
-and does not require Hugging Face access.
+available property models, and RDKit structure drawing. The page is delivered as
+one self-contained HTML response, so a separate static-file server is unnecessary.
+Model inference is local and does not require Hugging Face access.
 
 See [`data_process/README.md`](data_process/README.md),
 [`train_grin/README.md`](train_grin/README.md), and

@@ -23,7 +23,9 @@ python -m uvicorn grin_api.app:app \
 
 If `GRIN_MODEL_RUN_DIR` is omitted, the newest completed timestamped run is used.
 Interactive OpenAPI documentation is available at `/docs` while the server runs.
-The browser frontend is served from `/` by the same API process.
+The browser frontend is served from `/` by the same API process. Its CSS and
+JavaScript are embedded into that single HTML response, so no separate static-file
+server or `/static` proxy configuration is required.
 Open `http://127.0.0.1:8000`; a separate frontend server is not required.
 
 List models:
