@@ -128,7 +128,7 @@ async function parseError(response) {
 
 async function checkHealth() {
   try {
-    const response = await fetch("/health");
+    const response = await fetch("./health");
     if (!response.ok) throw new Error(await parseError(response));
     const health = await response.json();
     serviceStatus.classList.add("ready");
@@ -198,12 +198,12 @@ async function predict() {
 
   try {
     const [structureResponse, predictionResponse] = await Promise.all([
-      fetch("/structure", {
+      fetch("./structure", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ smiles }),
       }),
-      fetch("/predict", {
+      fetch("./predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ smiles: [smiles] }),

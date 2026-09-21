@@ -27,6 +27,8 @@ The browser frontend is served from `/` by the same API process. Its CSS and
 JavaScript are embedded into that single HTML response, so no separate static-file
 server or `/static` proxy configuration is required.
 Open `http://127.0.0.1:8000`; a separate frontend server is not required.
+Browser API requests use paths relative to the page, allowing deployment below a
+reverse-proxy prefix as well as directly at the domain root.
 
 List models:
 
