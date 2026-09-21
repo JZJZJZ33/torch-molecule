@@ -253,10 +253,10 @@ def frontend() -> HTMLResponse:
         '<link rel="stylesheet" href="/static/styles.css" />',
         f"<style>\n{styles}\n</style>",
     )
-    html = html.replace(
-        '<script src="/static/app.js" defer></script>',
-        f"<script defer>\n{script}\n</script>",
-    )
+    html = html.replace('<script src="/static/app.js" defer></script>', "")
+    # Inline scripts do not honor ``defer``. Place the application script after
+    # the page markup so all queried controls exist before JavaScript executes.
+    html = html.replace("</body>", f"<script>\n{script}\n</script>\n</body>")
     return HTMLResponse(html)
 
 
