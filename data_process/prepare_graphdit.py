@@ -1,8 +1,8 @@
 """Prepare deduplicated RPPD structures for Graph-DiT training.
 
 Examples:
-    python data_process/prepare_graphdit.py 20260920_rppd.csv
-    python data_process/prepare_graphdit.py 20260920_rppd.csv --target density
+    python data_process/prepare_graphdit.py data/20260920_rppd.csv
+    python data_process/prepare_graphdit.py data/20260920_rppd.csv --target density
 """
 
 from __future__ import annotations
@@ -100,4 +100,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

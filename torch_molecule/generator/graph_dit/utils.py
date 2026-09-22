@@ -81,7 +81,9 @@ def compute_dataset_info(smiles_or_mol_list, cache_path=None):
         else:
             mol = sms_or_mol
 
-        n_atom = mol.GetNumHeavyAtoms()
+        # Dummy atoms (*) are graph nodes too; RDKit's heavy-atom count
+        # excludes them. Match the graph converter, which removes only H.
+        n_atom = sum(atom.GetAtomicNum() != 1 for atom in mol.GetAtoms())
         n_bond = mol.GetNumBonds()
         n_atom_list.append(n_atom)
         n_bond_list.append(n_bond)

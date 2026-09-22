@@ -1,7 +1,7 @@
 """Inspect an RPPD CSV before selecting model targets.
 
 Example:
-    python data_process/inspect_rppd.py 20260920_rppd.csv
+    python data_process/inspect_rppd.py data/20260920_rppd.csv
 """
 
 from __future__ import annotations
@@ -78,4 +78,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

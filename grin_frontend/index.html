@@ -3,42 +3,66 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="HKRI Polymer Studio — AI property prediction for polymer materials." />
-    <title>HKRI Polymer Studio</title>
+    <meta name="description" content="polyNOVA — intelligent polymer discovery and battery materials design." />
+    <title>Property Predictor · polyNOVA</title>
     <link rel="stylesheet" href="/static/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/3dmol@2.5.5/build/3Dmol-min.js"></script>
     <script src="/static/app.js" defer></script>
   </head>
   <body>
     <header class="site-header">
-      <a class="brand" href="/" aria-label="HKRI Polymer Studio home"><span class="brand-code">HKRI</span><span class="brand-divider"></span><span>Polymer Studio</span></a>
+      <a class="brand" href="./" aria-label="polyNOVA home"><span class="brand-wordmark"><span>poly</span>NOVA</span></a>
       <nav class="header-nav" aria-label="Primary navigation">
-        <a class="active" href="#predictor" aria-current="page">Predictor</a>
-        <a class="upcoming" href="#" aria-disabled="true">Generator <small>SOON</small></a>
+        <a class="active" href="./" aria-current="page">Predictor</a>
+        <a href="./generator">Generator</a>
+        <a class="upcoming" href="#" aria-disabled="true" title="Automated polymer simulation pipeline">Simulation <small>SOON</small></a>
+        <a class="upcoming" href="#" aria-disabled="true" title="Electrode formulation prediction">Formulation <small>SOON</small></a>
+        <a class="upcoming" href="#" aria-disabled="true" title="Battery-level modeling">Battery <small>SOON</small></a>
       </nav>
-      <div class="service-status" id="service-status"><span class="status-dot"></span><span id="status-text">Checking models</span></div>
+      <div class="header-tools"><div class="language-switcher" aria-label="Language"><span>EN</span><a href="/zh">中文</a></div><div class="service-status" id="service-status"><span class="status-dot"></span><span id="status-text">Checking models</span></div></div>
     </header>
     <main>
       <section class="page-heading">
-        <div class="breadcrumb">HKRI Polymer Studio <span>/</span> Property Predictor</div>
+        <div class="breadcrumb">polyNOVA <span>/</span> Property Predictor</div>
         <h1>Polymer Property Predictor</h1>
-        <p>Enter a pSMILES structure to calculate available GRIN property predictions and view its RDKit representation.</p>
+        <p>Enter a pSMILES structure to estimate available material properties and explore a generated 3D polymer-chain preview.</p>
       </section>
       <section id="predictor" class="search-section" aria-label="Polymer prediction search">
         <label for="smiles-input">Search by polymer SMILES</label>
         <div class="search-bar">
-          <input id="smiles-input" type="text" spellcheck="false" value="*CC(*)c1ccccc1" placeholder="Enter pSMILES containing polymerization points (*)" />
+          <input id="smiles-input" type="text" spellcheck="false" value="*CC(*)C(=O)OC" placeholder="Enter pSMILES containing polymerization points (*)" />
           <button id="predict-button" class="search-button" type="button"><span>Predict properties</span><span aria-hidden="true">→</span></button>
         </div>
-        <div class="search-meta"><span>EXAMPLES</span><button class="example-button" type="button" data-smiles="*CC(*)c1ccccc1">Polystyrene</button><button class="example-button" type="button" data-smiles="*CC(*)C(=O)O">Acrylate</button><span class="search-hint">Press Enter to search</span></div>
+        <div class="search-meta"><span>EXAMPLES</span><button class="example-button" type="button" data-smiles="*CC(*)C(=O)OC">Poly(methyl acrylate)</button><button class="example-button" type="button" data-smiles="*CC(*)(F)F">Poly(vinylidene fluoride)</button><button class="example-button" type="button" data-smiles="*CC(*)O">Poly(vinyl alcohol)</button><span class="search-hint">Press Enter to search</span></div>
         <p class="error-message" id="error-message" role="alert"></p>
       </section>
 
       <section class="structure-section" aria-labelledby="structure-title">
-        <div class="section-heading"><div><p class="section-number">STRUCTURE</p><h2 id="structure-title">2D molecular structure</h2></div><span class="tag">RDKit</span></div>
-        <div id="structure-canvas" class="structure-canvas" aria-live="polite"><div class="empty-state"><div class="empty-hexagon" aria-hidden="true"></div><p>Submit a pSMILES to generate its structure.</p></div></div>
+        <div class="section-heading">
+          <div><h2 id="structure-title">Polymer structure preview</h2></div>
+        </div>
+        <div id="structure-canvas" class="structure-layout" aria-live="polite">
+          <div class="structure-3d-panel">
+            <div class="viewer-toolbar">
+              <div><strong>3D conformer</strong><span id="conformer-status">10-unit chain</span></div>
+              <div class="viewer-actions">
+                <button id="toggle-hydrogens" type="button" disabled>Show hydrogens</button>
+                <button id="reset-view" type="button" disabled>Reset view</button>
+              </div>
+            </div>
+            <div id="structure-3d" class="structure-3d">
+              <div class="empty-state"><div class="empty-hexagon" aria-hidden="true"></div><p>Submit a pSMILES to generate a 3D conformer.</p></div>
+            </div>
+            <p class="viewer-help">Drag to rotate · Scroll to zoom · Right-drag to translate</p>
+          </div>
+          <aside class="structure-2d-panel">
+            <div class="viewer-toolbar"><div><strong>2D repeat unit</strong><span>Input pSMILES</span></div></div>
+            <div id="structure-2d" class="structure-2d"><div class="empty-state"><p>2D preview</p></div></div>
+          </aside>
+        </div>
       </section>
       <section class="results-section" aria-labelledby="results-title">
-        <div class="results-heading"><div><p class="section-number">03</p><h2 id="results-title">Property prediction report</h2></div><p id="results-summary">Submit a pSMILES to run every available model.</p></div>
+        <div class="results-heading"><div><h2 id="results-title">Property prediction report</h2></div><p id="results-summary">Submit a pSMILES to run every available model.</p></div>
         <div class="property-table-wrap">
           <table class="property-table">
             <thead><tr><th>Property</th><th>中文名称</th><th>Symbol</th><th class="numeric-column">Predicted value</th><th>Unit</th></tr></thead>
@@ -46,11 +70,19 @@
           </table>
         </div>
       </section>
-      <section class="upcoming-tools" aria-label="Upcoming tools">
-        <strong>Additional tools in development:</strong>
-        <span>Polymer generation</span><span>Synthesis design</span><span>Electrode formulation prediction</span>
+      <section class="tools-overview" aria-labelledby="tools-title">
+        <div class="tools-overview-heading"><h2 id="tools-title">How the property predictor understands polymers</h2><p>Two polymer-specific representation methods connect repeat-unit structure with material-property prediction.</p></div>
+        <div class="model-explainers">
+          <article class="model-explainer">
+            <div class="model-copy"><h3>Repetition-invariant graph predictor</h3><p>The predictor represents a polymer as a molecular graph and learns features that remain stable when the same repeat unit is expanded into longer chains.</p><ol><li><strong>Polymer-aware augmentation</strong> creates equivalent chains with different repetition lengths during learning.</li><li><strong>Graph message passing</strong> combines atom and bond information across the structure.</li><li><strong>Invariant pooling and regression</strong> produce a material-property estimate that is less sensitive to how the repeat unit was written.</li></ol></div>
+            <figure class="model-figure"><img src="/assets/repetition-predictor.png" alt="Diagram comparing repeat-unit augmentation for homopolymers and block copolymers" loading="lazy" /><figcaption>The diagram shows why repeat-unit augmentation matters: expanded structures preserve the true polymer pattern for both homopolymers and block copolymers.</figcaption></figure>
+          </article>
+          <article class="model-explainer">
+            <div class="model-copy"><h3>Multimodal polymer representation</h3><p>This method learns from both a polymer string and its three-dimensional conformation so chemical connectivity and spatial geometry can inform the same prediction.</p><ol><li><strong>1D representation network</strong> reads masked pSMILES and learns chemical sequence context.</li><li><strong>3D representation network</strong> learns from noisy atomic coordinates and molecular geometry.</li><li><strong>Multitask pretraining</strong> reconstructs masked tokens, denoises coordinates, and aligns both latent representations before property fine-tuning.</li></ol></div>
+            <figure class="model-figure wide-figure"><img src="/assets/multimodal-predictor.png" alt="Multimodal architecture combining pSMILES and three-dimensional conformation" loading="lazy" /><figcaption>The two branches learn complementary 1D and 3D views, align them in a shared representation, and pass that representation to downstream prediction tasks.</figcaption></figure>
+          </article>
+        </div>
       </section>
     </main>
-    <footer><span>HKRI Polymer Studio · GRIN / torch-molecule</span><span>Research use · Original RPPD units</span></footer>
   </body>
 </html>

@@ -38,7 +38,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 PREPARE_SCRIPT = REPOSITORY_ROOT / "data_process" / "prepare_grin.py"
 TRAIN_SCRIPT = REPOSITORY_ROOT / "data_process" / "train_grin.py"
 DEFAULT_INPUT = REPOSITORY_ROOT / "data_process" / "output" / "rppd_clean.csv"
-FALLBACK_INPUT = REPOSITORY_ROOT / "20260920_rppd.csv"
+FALLBACK_INPUT = REPOSITORY_ROOT / "data" / "20260920_rppd.csv"
 DEFAULT_OUTPUT_PARENT = REPOSITORY_ROOT / "train_grin" / "output_standardized"
 
 
@@ -143,6 +143,12 @@ def main() -> None:
     parser.add_argument("--hidden-size", type=int, default=128)
     parser.add_argument("--learning-rate", type=float, default=1e-3)
     parser.add_argument("--device", choices=("auto", "cpu", "mps", "cuda"), default="cpu")
+    parser.add_argument(
+        "--verbose",
+        choices=("none", "progress_bar", "print_statement"),
+        default="progress_bar",
+        help="Training output style passed to each GRIN model",
+    )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--repetition-augmentation", action="store_true")
     parser.add_argument(
@@ -254,6 +260,8 @@ def main() -> None:
             args.device,
             "--seed",
             str(args.seed),
+            "--verbose",
+            args.verbose,
         ]
         if args.repetition_augmentation:
             train_command.append("--repetition-augmentation")

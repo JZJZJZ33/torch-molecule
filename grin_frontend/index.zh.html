@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="polyNOVA——智能聚合物发现与电池材料设计平台。" />
+    <title>性能预测 · polyNOVA</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/3dmol@2.5.5/build/3Dmol-min.js"></script>
+    <script src="/static/app.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="polyNOVA home"><span class="brand-wordmark"><span>poly</span>NOVA</span></a>
+      <nav class="header-nav" aria-label="主导航">
+        <a class="active" href="/zh" aria-current="page">性能预测</a>
+        <a href="/zh/generator">分子生成</a>
+        <a class="upcoming" href="#" aria-disabled="true" title="自动化聚合物模拟流程">模拟 <small>即将推出</small></a>
+        <a class="upcoming" href="#" aria-disabled="true" title="电极配方预测">配方 <small>即将推出</small></a>
+        <a class="upcoming" href="#" aria-disabled="true" title="电池级建模">电池 <small>即将推出</small></a>
+      </nav>
+      <div class="header-tools"><div class="language-switcher" aria-label="语言"><a href="/">EN</a><span>中文</span></div><div class="service-status" id="service-status"><span class="status-dot"></span><span id="status-text">正在检查模型</span></div></div>
+    </header>
+    <main>
+      <section class="page-heading">
+        <div class="breadcrumb">polyNOVA <span>/</span> 性能预测</div>
+        <h1>聚合物性能预测</h1>
+        <p>输入 pSMILES 结构，预测可用的材料性能，并查看生成的三维聚合物链预览。</p>
+      </section>
+      <section id="predictor" class="search-section" aria-label="Polymer prediction search">
+        <label for="smiles-input">通过聚合物 SMILES 搜索</label>
+        <div class="search-bar">
+          <input id="smiles-input" type="text" spellcheck="false" value="*CC(*)C(=O)OC" placeholder="输入包含聚合位点（*）的 pSMILES" />
+          <button id="predict-button" class="search-button" type="button"><span>预测性能</span><span aria-hidden="true">→</span></button>
+        </div>
+        <div class="search-meta"><span>示例</span><button class="example-button" type="button" data-smiles="*CC(*)C(=O)OC">聚丙烯酸甲酯</button><button class="example-button" type="button" data-smiles="*CC(*)(F)F">聚偏二氟乙烯</button><button class="example-button" type="button" data-smiles="*CC(*)O">聚乙烯醇</button><span class="search-hint">按回车键搜索</span></div>
+        <p class="error-message" id="error-message" role="alert"></p>
+      </section>
+
+      <section class="structure-section" aria-labelledby="structure-title">
+        <div class="section-heading">
+          <div><h2 id="structure-title">聚合物结构预览</h2></div>
+        </div>
+        <div id="structure-canvas" class="structure-layout" aria-live="polite">
+          <div class="structure-3d-panel">
+            <div class="viewer-toolbar">
+              <div><strong>三维构象</strong><span id="conformer-status">10 单元链</span></div>
+              <div class="viewer-actions">
+                <button id="toggle-hydrogens" type="button" disabled>显示氢原子</button>
+                <button id="reset-view" type="button" disabled>重置视图</button>
+              </div>
+            </div>
+            <div id="structure-3d" class="structure-3d">
+              <div class="empty-state"><div class="empty-hexagon" aria-hidden="true"></div><p>提交 pSMILES 以生成三维构象。</p></div>
+            </div>
+            <p class="viewer-help">拖动旋转 · 滚轮缩放 · 右键拖动平移</p>
+          </div>
+          <aside class="structure-2d-panel">
+            <div class="viewer-toolbar"><div><strong>二维重复单元</strong><span>输入 pSMILES</span></div></div>
+            <div id="structure-2d" class="structure-2d"><div class="empty-state"><p>二维预览</p></div></div>
+          </aside>
+        </div>
+      </section>
+      <section class="results-section" aria-labelledby="results-title">
+        <div class="results-heading"><div><h2 id="results-title">性能预测报告</h2></div><p id="results-summary">提交 pSMILES 以运行所有可用模型。</p></div>
+        <div class="property-table-wrap">
+          <table class="property-table">
+            <thead><tr><th>性能</th><th>中文名称</th><th>符号</th><th class="numeric-column">预测值</th><th>单位</th></tr></thead>
+            <tbody id="property-grid"><tr class="results-placeholder"><td colspan="5">等待预测</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="tools-overview" aria-labelledby="tools-title">
+        <div class="tools-overview-heading"><h2 id="tools-title">性能预测器如何理解聚合物</h2><p>两种面向聚合物的表示方法，将重复单元结构与材料性能预测连接起来。</p></div>
+        <div class="model-explainers">
+          <article class="model-explainer">
+            <div class="model-copy"><h3>重复不变图预测器</h3><p>预测器将聚合物表示为分子图，并学习当相同重复单元扩展为更长链时仍保持稳定的特征。</p><ol><li><strong>聚合物感知数据增强</strong>在训练中创建重复长度不同但等价的链。</li><li><strong>图消息传递</strong>融合结构中的原子与化键信息。</li><li><strong>不变池化与回归</strong>输出材料性能估计，降低重复单元书写方式带来的影响。</li></ol></div>
+            <figure class="model-figure"><img src="/assets/repetition-predictor.png" alt="均聚物和嵌段共聚物重复单元增强示意图" loading="lazy" /><figcaption>该图说明重复单元增强的作用：扩展后的结构为均聚物和嵌段共聚物保留真实的聚合模式。</figcaption></figure>
+          </article>
+          <article class="model-explainer">
+            <div class="model-copy"><h3>多模态聚合物表示</h3><p>该方法同时学习聚合物字符串与三维构象，使化学连接关系和空间几何共同参与性能预测。</p><ol><li><strong>一维表示网络</strong>读取掩码 pSMILES，学习化学序列上下文。</li><li><strong>三维表示网络</strong>从加噪原子坐标与分子几何中学习。</li><li><strong>多任务预训练</strong>重建掩码标记、去噪坐标，并在性能微调前对齐两种潜在表示。</li></ol></div>
+            <figure class="model-figure wide-figure"><img src="/assets/multimodal-predictor.png" alt="结合 pSMILES 与三维构象的多模态架构" loading="lazy" /><figcaption>两个分支学习互补的一维和三维视图，在共享表示中进行对齐，再将结果用于下游预测任务。</figcaption></figure>
+          </article>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

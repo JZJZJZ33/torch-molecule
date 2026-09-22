@@ -5,7 +5,7 @@ best checkpoint, and producing evaluation artifacts for one or more RPPD materia
 properties.
 
 The default input is `data_process/output/rppd_clean.csv` when available, otherwise
-the original `20260920_rppd.csv` export is used. Source files are never modified.
+the original `data/20260920_rppd.csv` export is used. Source files are never modified.
 The first standardized run used by the API is versioned for server deployment.
 New timestamped runs remain excluded from Git until explicitly selected for a
 future release.
@@ -98,3 +98,5 @@ train_grin/output_standardized/
 
 Every metric is reported in the property's original RPPD units. Each property's
 `metrics.json` also records the target standardization needed for new predictions.
+The public API excludes the experimental RPPD `r2` target; future `--all` runs
+train the remaining primary material properties.

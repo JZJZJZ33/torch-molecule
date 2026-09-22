@@ -1,7 +1,7 @@
 """Aggregate RPPD replicates and create leakage-safe GRIN data splits.
 
 Example:
-    python data_process/prepare_grin.py 20260920_rppd.csv --target density
+    python data_process/prepare_grin.py data/20260920_rppd.csv --target density
 """
 
 from __future__ import annotations
@@ -100,4 +100,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

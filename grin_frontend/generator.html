@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="polyNOVA — conditional polymer generation for materials discovery." />
+    <title>Conditional Generator · polyNOVA</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script src="/static/generator.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="polyNOVA home"><span class="brand-wordmark"><span>poly</span>NOVA</span></a>
+      <nav class="header-nav" aria-label="Primary navigation">
+        <a href="./">Predictor</a>
+        <a class="active" href="./generator" aria-current="page">Generator</a>
+        <a class="upcoming" href="#" aria-disabled="true" title="Automated polymer simulation pipeline">Simulation <small>SOON</small></a>
+        <a class="upcoming" href="#" aria-disabled="true" title="Electrode formulation prediction">Formulation <small>SOON</small></a>
+        <a class="upcoming" href="#" aria-disabled="true" title="Battery-level modeling">Battery <small>SOON</small></a>
+      </nav>
+      <div class="header-tools"><div class="language-switcher" aria-label="Language"><span>EN</span><a href="/zh/generator">中文</a></div><div class="service-status" id="service-status"><span class="status-dot"></span><span id="status-text">Checking models</span></div></div>
+    </header>
+    <main>
+      <section class="page-heading">
+        <div class="breadcrumb">polyNOVA <span>/</span> Conditional Generator</div>
+        <h1>Conditional Polymer Generator</h1>
+        <p>Select a supported property combination and generate candidate repeat units designed around those targets.</p>
+      </section>
+
+      <section id="generator" class="generator-section generator-page" aria-labelledby="generator-title">
+        <div class="section-heading">
+          <div><h2 id="generator-title">Choose target properties</h2></div>
+        </div>
+        <p class="generator-intro">Only combinations backed by a fine-tuned checkpoint can run. Values use the original RPPD units shown below.</p>
+        <div id="generation-property-options" class="generation-property-options" aria-live="polite">
+          <span class="generator-placeholder">Loading available generation models…</span>
+        </div>
+        <div id="generation-condition-inputs" class="generation-condition-inputs"></div>
+        <div class="generation-actions">
+          <label for="generation-count">Candidates
+            <input id="generation-count" type="number" min="1" max="100" value="8" />
+          </label>
+          <button id="generate-button" class="search-button" type="button" disabled><span>Generate polymers</span><span aria-hidden="true">→</span></button>
+        </div>
+        <p id="generation-model-status" class="generation-model-status">Choose one or more properties.</p>
+        <p id="generation-error" class="error-message" role="alert"></p>
+      </section>
+
+      <section class="results-section generator-output-section" aria-labelledby="generation-results-title">
+        <div class="results-heading"><div><h2 id="generation-results-title">Generated repeat units</h2></div><p id="generation-results-summary">Awaiting generation</p></div>
+        <div id="generation-results" class="generation-results">
+          <div class="results-placeholder">Awaiting generation</div>
+        </div>
+      </section>
+      <section class="tools-overview" aria-labelledby="tools-title">
+        <div class="tools-overview-heading"><h2 id="tools-title">How property-guided polymer generation works</h2><p>The model combines target-property conditioning with graph diffusion to construct candidate repeat units.</p></div>
+        <div class="model-explainers">
+          <article class="model-explainer generator-model">
+            <div class="model-copy"><h3>Conditional graph diffusion generator</h3><p>The generator starts from a noisy molecular graph and progressively reconstructs atom and bond structure while following the selected property targets.</p><ol><li><strong>Condition encoder</strong> converts numerical or categorical targets into a shared conditioning representation.</li><li><strong>Transformer structure encoder</strong> uses multi-head attention and adaptive layer normalization to combine graph, diffusion-time, and property information.</li><li><strong>Structure decoder</strong> predicts the cleaner graph at each reverse-diffusion step until a candidate repeat unit is formed.</li></ol></div>
+            <div class="generator-figures"><figure class="model-figure"><img src="/assets/conditional-generator.png" alt="Conditional graph diffusion process and encoder-decoder architecture" loading="lazy" /><figcaption>Property conditions guide the reverse-diffusion path from a noisy graph toward a molecular structure.</figcaption></figure><figure class="model-figure"><img src="/assets/generator-components.png" alt="Condition encoder, transformer layer, and structure decoder details" loading="lazy" /><figcaption>Inside the network: target encoding, attention with adaptive normalization, and graph decoding.</figcaption></figure></div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

@@ -2,10 +2,20 @@ const input = document.querySelector("#smiles-input");
 const predictButton = document.querySelector("#predict-button");
 const errorMessage = document.querySelector("#error-message");
 const structureCanvas = document.querySelector("#structure-canvas");
+const structure3d = document.querySelector("#structure-3d");
+const structure2d = document.querySelector("#structure-2d");
+const conformerStatus = document.querySelector("#conformer-status");
+const toggleHydrogensButton = document.querySelector("#toggle-hydrogens");
+const resetViewButton = document.querySelector("#reset-view");
 const propertyGrid = document.querySelector("#property-grid");
 const resultsSummary = document.querySelector("#results-summary");
 const serviceStatus = document.querySelector("#service-status");
 const statusText = document.querySelector("#status-text");
+const isChinese = document.documentElement.lang.startsWith("zh");
+const ui = (english, chinese) => (isChinese ? chinese : english);
+
+let molecularViewer = null;
+let hydrogensVisible = false;
 
 const propertyLabels = {
   density: "Density",
@@ -19,7 +29,6 @@ const propertyLabels = {
   isentropic_bulk_modulus: "Isentropic bulk modulus",
   volume_expansion: "Volume expansion coefficient",
   linear_expansion: "Linear expansion coefficient",
-  r2: "Mean square end-to-end distance",
   static_dielectric_const: "Static dielectric constant",
   nematic_order_parameter: "Nematic order parameter",
   refractive_index: "Refractive index",
@@ -40,7 +49,6 @@ const propertyLabelsZh = {
   isentropic_bulk_modulus: "等熵体积模量",
   volume_expansion: "体积膨胀系数",
   linear_expansion: "线性膨胀系数",
-  r2: "均方末端距",
   static_dielectric_const: "静态介电常数",
   nematic_order_parameter: "向列序参数",
   refractive_index: "折射率",
@@ -61,7 +69,6 @@ const propertyUnits = {
   isentropic_bulk_modulus: "Pa",
   volume_expansion: "K⁻¹",
   linear_expansion: "K⁻¹",
-  r2: "Å",
   static_dielectric_const: "dimensionless",
   nematic_order_parameter: "dimensionless",
   refractive_index: "dimensionless",
@@ -82,7 +89,6 @@ const propertySymbols = {
   isentropic_bulk_modulus: "Kₛ",
   volume_expansion: "αᵥ",
   linear_expansion: "αₗ",
-  r2: "R²",
   static_dielectric_const: "ε",
   nematic_order_parameter: "S",
   refractive_index: "n",
@@ -128,14 +134,14 @@ async function parseError(response) {
 
 async function checkHealth() {
   try {
-    const response = await fetch("./health");
+    const response = await fetch("/health");
     if (!response.ok) throw new Error(await parseError(response));
     const health = await response.json();
     serviceStatus.classList.add("ready");
-    statusText.textContent = `${health.property_count} models ready`;
+    statusText.textContent = ui(`${health.property_count} models ready`, `${health.property_count} 个模型已就绪`);
   } catch (error) {
     serviceStatus.classList.add("error");
-    statusText.textContent = "Models unavailable";
+    statusText.textContent = ui("Models unavailable", "模型不可用");
   }
 }
 
@@ -154,6 +160,61 @@ function showLoading() {
     propertyGrid.append(row);
   }
   structureCanvas.classList.add("loading-shimmer");
+  conformerStatus.textContent = ui("Generating 10-unit chain…", "正在生成 10 单元链…");
+  toggleHydrogensButton.disabled = true;
+  resetViewButton.disabled = true;
+}
+
+function applyViewerStyle() {
+  molecularViewer.setStyle({}, {
+    stick: { radius: 0.14, colorscheme: "Jmol" },
+    sphere: { scale: 0.23, colorscheme: "Jmol" },
+  });
+  if (!hydrogensVisible) molecularViewer.setStyle({ elem: "H" }, {});
+  molecularViewer.render();
+}
+
+function renderStructure(structure) {
+  if (typeof window.$3Dmol === "undefined") {
+    throw new Error(ui("The 3D viewer library could not be loaded.", "无法加载三维查看器。"));
+  }
+
+  structure2d.innerHTML = structure.svg_2d;
+  if (molecularViewer === null) {
+    structure3d.replaceChildren();
+    molecularViewer = window.$3Dmol.createViewer(structure3d, {
+      backgroundColor: "#f8fbfe",
+      antialias: true,
+    });
+  } else {
+    molecularViewer.clear();
+  }
+
+  molecularViewer.addModel(`${structure.mol_block}\n$$$$\n`, "sdf");
+  hydrogensVisible = false;
+  toggleHydrogensButton.textContent = ui("Show hydrogens", "显示氢原子");
+  applyViewerStyle();
+  molecularViewer.zoomTo();
+  molecularViewer.render();
+  molecularViewer.resize();
+
+  const convergence = structure.uff_converged ? ui("converged", "已收敛") : ui("iteration limit reached", "达到迭代上限");
+  conformerStatus.textContent = ui(`${structure.repeat_units} units · optimization ${convergence} · ${structure.uff_energy.toFixed(2)} kcal/mol`, `${structure.repeat_units} 个单元 · 优化${convergence} · ${structure.uff_energy.toFixed(2)} kcal/mol`);
+  toggleHydrogensButton.disabled = false;
+  resetViewButton.disabled = false;
+}
+
+function showStructureError(message) {
+  if (molecularViewer !== null) {
+    molecularViewer.clear();
+    molecularViewer.render();
+  }
+  structure3d.innerHTML = `<div class="empty-state"><p>${ui("Unable to generate 3D conformer.", "无法生成三维构象。")}</p></div>`;
+  structure2d.innerHTML = `<div class="empty-state"><p>${ui("2D structure unavailable.", "二维结构不可用。")}</p></div>`;
+  molecularViewer = null;
+  conformerStatus.textContent = message;
+  toggleHydrogensButton.disabled = true;
+  resetViewButton.disabled = true;
 }
 
 function renderProperties(predictions) {
@@ -164,10 +225,10 @@ function renderProperties(predictions) {
     row.style.animationDelay = `${Math.min(index * 25, 250)}ms`;
     const english = document.createElement("td");
     english.className = "property-english";
-    english.textContent = propertyLabels[name] || name.replaceAll("_", " ");
+    english.textContent = isChinese ? (propertyLabelsZh[name] || name.replaceAll("_", " ")) : (propertyLabels[name] || name.replaceAll("_", " "));
     const chinese = document.createElement("td");
     chinese.className = "property-chinese";
-    chinese.textContent = propertyLabelsZh[name] || "属性预测";
+    chinese.textContent = isChinese ? (propertyLabels[name] || name.replaceAll("_", " ")) : (propertyLabelsZh[name] || "属性预测");
     const symbol = document.createElement("td");
     symbol.className = "property-symbol-cell";
     symbol.textContent = propertySymbols[name] || "—";
@@ -180,55 +241,91 @@ function renderProperties(predictions) {
     row.append(english, chinese, symbol, value, unit);
     propertyGrid.append(row);
   });
-  resultsSummary.textContent = `${entries.length} properties predicted from one polymer structure.`;
+  resultsSummary.textContent = ui(`${entries.length} properties predicted from one polymer structure.`, `已从一个聚合物结构预测 ${entries.length} 项性能。`);
 }
 
 async function predict() {
   const smiles = input.value.trim();
   if (!smiles) {
-    errorMessage.textContent = "Enter a pSMILES string first.";
+    errorMessage.textContent = ui("Enter a pSMILES string first.", "请先输入 pSMILES 字符串。");
     input.focus();
     return;
   }
 
   errorMessage.textContent = "";
   predictButton.disabled = true;
-  predictButton.querySelector("span:first-child").textContent = "Running GRIN models…";
+  predictButton.querySelector("span:first-child").textContent = ui("Running property models…", "正在运行性能模型…");
   showLoading();
 
-  try {
-    const [structureResponse, predictionResponse] = await Promise.all([
-      fetch("./structure", {
+  const structureRequest = fetch("/structure", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ smiles }),
-      }),
-      fetch("./predict", {
+      }).then(async (response) => {
+        if (!response.ok) throw new Error(await parseError(response));
+        return response.json();
+      });
+  const predictionRequest = fetch("/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ smiles: [smiles] }),
-      }),
+      }).then(async (response) => {
+        if (!response.ok) throw new Error(await parseError(response));
+        return response.json();
+      });
+
+  try {
+    const [structureResult, predictionResult] = await Promise.allSettled([
+      structureRequest,
+      predictionRequest,
     ]);
+    const errors = [];
 
-    if (!structureResponse.ok) throw new Error(await parseError(structureResponse));
-    if (!predictionResponse.ok) throw new Error(await parseError(predictionResponse));
+    if (structureResult.status === "fulfilled") {
+      try {
+        renderStructure(structureResult.value);
+      } catch (error) {
+        showStructureError(error.message || "Viewer failed");
+        errors.push(`Structure: ${error.message || "viewer failed"}`);
+      }
+    } else {
+      const message = structureResult.reason?.message || "conformer generation failed";
+      showStructureError(message);
+      errors.push(`Structure: ${message}`);
+    }
 
-    const svg = await structureResponse.text();
-    const prediction = await predictionResponse.json();
-    structureCanvas.classList.remove("loading-shimmer");
-    structureCanvas.innerHTML = svg;
-    renderProperties(prediction.predictions);
-  } catch (error) {
-    structureCanvas.classList.remove("loading-shimmer");
-    structureCanvas.innerHTML = `<div class="empty-state"><p>Unable to render structure.</p></div>`;
-    propertyGrid.innerHTML = `<tr class="results-placeholder"><td colspan="5">Prediction unavailable</td></tr>`;
-    errorMessage.textContent = error.message || "Prediction failed.";
-    resultsSummary.textContent = "Check the pSMILES and API model configuration.";
+    if (predictionResult.status === "fulfilled") {
+      renderProperties(predictionResult.value.predictions);
+    } else {
+      propertyGrid.innerHTML = `<tr class="results-placeholder"><td colspan="5">${ui("Prediction unavailable", "预测不可用")}</td></tr>`;
+      resultsSummary.textContent = ui("Property prediction failed; the structure may still be explored.", "性能预测失败，但仍可查看结构。");
+      errors.push(`Prediction: ${predictionResult.reason?.message || "request failed"}`);
+    }
+
+    errorMessage.textContent = errors.join(" · ");
   } finally {
+    structureCanvas.classList.remove("loading-shimmer");
     predictButton.disabled = false;
-    predictButton.querySelector("span:first-child").textContent = "Predict all properties";
+    predictButton.querySelector("span:first-child").textContent = ui("Predict all properties", "预测全部性能");
   }
 }
+
+toggleHydrogensButton.addEventListener("click", () => {
+  if (molecularViewer === null) return;
+  hydrogensVisible = !hydrogensVisible;
+  toggleHydrogensButton.textContent = hydrogensVisible ? ui("Hide hydrogens", "隐藏氢原子") : ui("Show hydrogens", "显示氢原子");
+  applyViewerStyle();
+});
+
+resetViewButton.addEventListener("click", () => {
+  if (molecularViewer === null) return;
+  molecularViewer.zoomTo();
+  molecularViewer.render();
+});
+
+window.addEventListener("resize", () => {
+  if (molecularViewer !== null) molecularViewer.resize();
+});
 
 predictButton.addEventListener("click", predict);
 input.addEventListener("keydown", (event) => {

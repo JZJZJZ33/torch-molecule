@@ -176,6 +176,24 @@ procedure.txt
 .DS_Store
 **/.DS_Store
 
+# Editor and local workspace settings
+.idea/
+.vscode/
+
+# Local environment overrides
+.env.*
+!.env.example
+
+# Large source datasets downloaded separately. Small example datasets and the
+# curated RPPD export remain versioned.
+data/PI1M_v2.csv
+
+# Model weights and resumable training state. Existing versioned deployment
+# checkpoints remain tracked; this prevents new local runs from being added.
+*.pt
+*.pth
+*.ckpt
+
 # Generated preprocessing artifacts. The source export and cleaned dataset used
 # for the first server deployment are intentionally versioned.
 data_process/output/*
@@ -190,3 +208,10 @@ train_grin/output_standardized/*
 !train_grin/output_standardized/.gitkeep
 !train_grin/output_standardized/run_20260921_003803/
 !train_grin/output_standardized/run_20260921_003803/**
+
+# Cross-validation results are reproducible local artifacts.
+model_evaluation/output/*
+!model_evaluation/output/.gitkeep
+
+# Graph-generation runs are local/server artifacts.
+train_graphdit/output/

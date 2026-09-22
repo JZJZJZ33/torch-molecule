@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="polyNOVA——面向材料发现的条件聚合物生成平台。" />
+    <title>条件生成 · polyNOVA</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script src="/static/generator.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="polyNOVA home"><span class="brand-wordmark"><span>poly</span>NOVA</span></a>
+      <nav class="header-nav" aria-label="主导航">
+        <a href="/zh">性能预测</a>
+        <a class="active" href="/zh/generator" aria-current="page">分子生成</a>
+        <a class="upcoming" href="#" aria-disabled="true" title="自动化聚合物模拟流程">模拟 <small>即将推出</small></a>
+        <a class="upcoming" href="#" aria-disabled="true" title="电极配方预测">配方 <small>即将推出</small></a>
+        <a class="upcoming" href="#" aria-disabled="true" title="电池级建模">电池 <small>即将推出</small></a>
+      </nav>
+      <div class="header-tools"><div class="language-switcher" aria-label="语言"><a href="/generator">EN</a><span>中文</span></div><div class="service-status" id="service-status"><span class="status-dot"></span><span id="status-text">正在检查模型</span></div></div>
+    </header>
+    <main>
+      <section class="page-heading">
+        <div class="breadcrumb">polyNOVA <span>/</span> 条件生成</div>
+        <h1>条件聚合物生成器</h1>
+        <p>选择支持的性能组合，生成围绕目标性能设计的候选重复单元。</p>
+      </section>
+
+      <section id="generator" class="generator-section generator-page" aria-labelledby="generator-title">
+        <div class="section-heading">
+          <div><h2 id="generator-title">选择目标性能</h2></div>
+        </div>
+        <p class="generator-intro">仅支持已有微调模型的性能组合。数值使用下方显示的原始数据单位。</p>
+        <div id="generation-property-options" class="generation-property-options" aria-live="polite">
+          <span class="generator-placeholder">正在加载可用生成模型…</span>
+        </div>
+        <div id="generation-condition-inputs" class="generation-condition-inputs"></div>
+        <div class="generation-actions">
+          <label for="generation-count">候选数量
+            <input id="generation-count" type="number" min="1" max="100" value="8" />
+          </label>
+          <button id="generate-button" class="search-button" type="button" disabled><span>生成聚合物</span><span aria-hidden="true">→</span></button>
+        </div>
+        <p id="generation-model-status" class="generation-model-status">请选择一个或多个性能。</p>
+        <p id="generation-error" class="error-message" role="alert"></p>
+      </section>
+
+      <section class="results-section generator-output-section" aria-labelledby="generation-results-title">
+        <div class="results-heading"><div><h2 id="generation-results-title">生成的重复单元</h2></div><p id="generation-results-summary">等待生成</p></div>
+        <div id="generation-results" class="generation-results">
+          <div class="results-placeholder">等待生成</div>
+        </div>
+      </section>
+      <section class="tools-overview" aria-labelledby="tools-title">
+        <div class="tools-overview-heading"><h2 id="tools-title">性能引导的聚合物生成原理</h2><p>模型将目标性能条件与图扩散结合，用于构建候选重复单元。</p></div>
+        <div class="model-explainers">
+          <article class="model-explainer generator-model">
+            <div class="model-copy"><h3>条件图扩散生成器</h3><p>生成器从带噪分子图开始，在遵循所选目标性能的同时，逐步重建原子与化键结构。</p><ol><li><strong>条件编码器</strong>将数值或类别目标转换为共享的条件表示。</li><li><strong>Transformer 结构编码器</strong>使用多头注意力与自适应层归一化，融合图结构、扩散时间和性能信息。</li><li><strong>结构解码器</strong>在每个反向扩散步骤预测更清晰的图，直到形成候选重复单元。</li></ol></div>
+            <div class="generator-figures"><figure class="model-figure"><img src="/assets/conditional-generator.png" alt="条件图扩散过程及编码器解码器架构" loading="lazy" /><figcaption>性能条件引导反向扩散路径，使带噪图逐步转化为分子结构。</figcaption></figure><figure class="model-figure"><img src="/assets/generator-components.png" alt="条件编码器、Transformer 层与结构解码器细节" loading="lazy" /><figcaption>网络内部包括目标编码、带自适应归一化的注意力机制以及图结构解码。</figcaption></figure></div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

@@ -18,6 +18,33 @@ HF_METADATA = {
 }
 from ..utils.format import sanitize_config
 
+
+def _parameter_values_equal(old_value, new_value):
+    """Compare checkpoint parameters without coercing multi-value tensors to bool."""
+    if isinstance(old_value, torch.Tensor) and isinstance(new_value, torch.Tensor):
+        return torch.equal(old_value, new_value)
+    if isinstance(old_value, np.ndarray) and isinstance(new_value, np.ndarray):
+        return np.array_equal(old_value, new_value, equal_nan=True)
+    if isinstance(old_value, dict) and isinstance(new_value, dict):
+        return old_value.keys() == new_value.keys() and all(
+            _parameter_values_equal(old_value[key], new_value[key]) for key in old_value
+        )
+    if isinstance(old_value, (list, tuple)) and isinstance(new_value, (list, tuple)):
+        return len(old_value) == len(new_value) and all(
+            _parameter_values_equal(old_item, new_item)
+            for old_item, new_item in zip(old_value, new_value)
+        )
+    try:
+        result = old_value == new_value
+        if isinstance(result, torch.Tensor):
+            return bool(torch.all(result).item())
+        if isinstance(result, np.ndarray):
+            return bool(np.all(result))
+        return bool(result)
+    except (TypeError, ValueError, RuntimeError):
+        return False
+
+
 class LocalCheckpointManager:
     """Handles saving and loading of models to and from local paths."""
 
@@ -66,7 +93,7 @@ class LocalCheckpointManager:
                 continue
             if hasattr(model_instance, key):
                 old_value = getattr(model_instance, key)
-                is_changed = (old_value != new_value)
+                is_changed = not _parameter_values_equal(old_value, new_value)
                 parameter_status.append({
                     "Parameter": key,
                     "Old Value": old_value,

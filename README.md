@@ -75,7 +75,8 @@ organized as follows:
 ```text
 data_process/   RPPD inspection, cleaning, and leakage-safe data preparation
 train_grin/     standardized multi-property GRIN training and evaluation
-grin_api/       FastAPI model service and RDKit structure rendering
+model_evaluation/ fingerprint baselines and leakage-safe GRIN cross-validation
+polymer_api/    GRIN prediction, Graph-DiT generation, and structure rendering
 grin_frontend/  Predictor interface served by the API
 ```
 
@@ -125,13 +126,26 @@ python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_
 
 ### Prepare data and train models
 
-Place the RPPD CSV at the repository root, then run:
+Place the RPPD CSV in `data/`, then run:
 
 ```bash
-python data_process/clean_rppd.py 20260920_rppd.csv
+python data_process/clean_rppd.py data/20260920_rppd.csv
 python train_grin/train.py --list-properties
 python train_grin/train.py --all --device cpu  # use --device cuda on the H20
 ```
+
+For a fair five-fold GRIN evaluation on the H20, with progress saved after
+every fold:
+
+```bash
+python model_evaluation/evaluate_grin_cv.py \
+  --all \
+  --device cuda \
+  --output-root model_evaluation/output/grin_cv_server
+```
+
+If the server job is interrupted, append `--resume` to the same command. See
+`model_evaluation/README.md` for outputs and evaluation details.
 
 Training standardizes each target using training-split statistics and saves the
 inverse-transform parameters with every checkpoint. Each timestamped property
@@ -139,26 +153,28 @@ directory also contains original-unit MAE, MSE, RMSE and R² metrics, prediction
 CSVs, a scatter plot, and a training-loss plot. Train selected targets with one
 or more `--property` arguments instead of `--all`.
 
-### Run the predictor application
+### Run the polymer application
 
 ```bash
 GRIN_MODEL_RUN_DIR="$PWD/train_grin/output_standardized/run_20260921_003803" \
-GRIN_API_DEVICE=cpu \
-python -m uvicorn grin_api.app:app \
+POLYMER_API_DEVICE=cpu \
+GRAPHDIT_MODEL_ROOT="$PWD/train_graphdit/output/graphdit_rppd_density_tg" \
+python -m uvicorn polymer_api.app:app \
   --host 127.0.0.1 --port 8000 --reload \
-  --reload-dir grin_api --reload-dir grin_frontend
+  --reload-dir polymer_api --reload-dir grin_frontend
 ```
 
-Set `GRIN_API_DEVICE=cuda` when serving on the H20.
+Set `POLYMER_API_DEVICE=cuda` when serving on the H20.
 
 Open `http://127.0.0.1:8000`. The same process hosts the API, frontend, all
-available property models, and RDKit structure drawing. The page is delivered as
+available GRIN predictors, configured Graph-DiT generators, and RDKit structure
+drawing. The page is delivered as
 one self-contained HTML response, so a separate static-file server is unnecessary.
 Model inference is local and does not require Hugging Face access.
 
 See [`data_process/README.md`](data_process/README.md),
 [`train_grin/README.md`](train_grin/README.md), and
-[`grin_api/README.md`](grin_api/README.md) for detailed options and API examples.
+[`polymer_api/README.md`](polymer_api/README.md) for detailed options and API examples.
 
 ## Usage
 

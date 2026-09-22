@@ -15,14 +15,14 @@ python -m pip install pandas
 Inspect and clean the source data:
 
 ```bash
-python data_process/inspect_rppd.py 20260920_rppd.csv
-python data_process/clean_rppd.py 20260920_rppd.csv
+python data_process/inspect_rppd.py data/20260920_rppd.csv
+python data_process/clean_rppd.py data/20260920_rppd.csv
 ```
 
 Prepare leakage-safe GRIN splits for one regression target:
 
 ```bash
-python data_process/prepare_grin.py 20260920_rppd.csv --target density
+python data_process/prepare_grin.py data/20260920_rppd.csv --target density
 ```
 
 This aggregates repeated simulations by canonical SMILES, splits unique structures,
@@ -32,13 +32,13 @@ replicate statistics are retained in the generated CSVs.
 Prepare an unconditional Graph-DiT dataset:
 
 ```bash
-python data_process/prepare_graphdit.py 20260920_rppd.csv
+python data_process/prepare_graphdit.py data/20260920_rppd.csv
 ```
 
 Prepare a conditional Graph-DiT dataset:
 
 ```bash
-python data_process/prepare_graphdit.py 20260920_rppd.csv --target density
+python data_process/prepare_graphdit.py data/20260920_rppd.csv --target density
 ```
 
 Multiple conditioning properties may be provided by repeating `--target` or using
@@ -48,7 +48,7 @@ transform parameters are saved in `metadata.json`.
 Outlier removal is disabled by default. Enable explicit Tukey fences, for example:
 
 ```bash
-python data_process/prepare_grin.py 20260920_rppd.csv \
+python data_process/prepare_grin.py data/20260920_rppd.csv \
   --target tg --outlier-iqr 3
 ```
 

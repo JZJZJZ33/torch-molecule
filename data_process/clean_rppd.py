@@ -1,7 +1,7 @@
 """Create a lossless, analysis-ready RPPD CSV while retaining replicate rows.
 
 Example:
-    python data_process/clean_rppd.py 20260920_rppd.csv
+    python data_process/clean_rppd.py data/20260920_rppd.csv
 """
 
 from __future__ import annotations
@@ -63,4 +63,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

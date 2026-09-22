@@ -194,13 +194,22 @@ def main() -> None:
     print(f"Device: {device}")
     print("Rows:", ", ".join(f"{name}={len(frame)}" for name, frame in splits.items()))
 
+    effective_batch_size = min(args.batch_size, len(splits["train"]))
+    while effective_batch_size > 2 and len(splits["train"]) % effective_batch_size == 1:
+        effective_batch_size -= 1
+    if effective_batch_size != args.batch_size:
+        print(
+            f"Batch size adjusted from {args.batch_size} to {effective_batch_size} "
+            "to avoid a one-sample BatchNorm batch"
+        )
+
     model = GRINMolecularPredictor(
         num_task=1,
         task_type="regression",
         repetition_augmentation=args.repetition_augmentation,
         num_layer=args.num_layer,
         hidden_size=args.hidden_size,
-        batch_size=args.batch_size,
+        batch_size=effective_batch_size,
         epochs=args.epochs,
         learning_rate=args.learning_rate,
         l1_penalty=args.l1_penalty,
@@ -253,7 +262,8 @@ def main() -> None:
         "model_parameters": {
             "num_layer": args.num_layer,
             "hidden_size": args.hidden_size,
-            "batch_size": args.batch_size,
+            "batch_size": effective_batch_size,
+            "requested_batch_size": args.batch_size,
             "maximum_epochs": args.epochs,
             "patience": args.patience,
             "learning_rate": args.learning_rate,
