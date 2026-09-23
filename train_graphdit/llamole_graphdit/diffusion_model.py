@@ -258,7 +258,7 @@ class GraphDiT(nn.Module):
     ):
         properties = torch.where(properties == no_label_index, float("nan"), properties)
         batch_size = properties.size(0)
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = properties.device
         n_nodes = self.node_dist.sample_n(batch_size, device)
         arange = (
             torch.arange(self.max_n_nodes, device=device)

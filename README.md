@@ -158,7 +158,8 @@ or more `--property` arguments instead of `--all`.
 ```bash
 GRIN_MODEL_RUN_DIR="$PWD/train_grin/output_standardized/run_20260921_003803" \
 POLYMER_API_DEVICE=cpu \
-GRAPHDIT_MODEL_ROOT="$PWD/train_graphdit/output/graphdit_rppd_density_tg" \
+GRAPHDIT_MODEL_ROOT="$PWD/train_graphdit/output/rppd_finetuned" \
+GRAPHDIT_UNCONDITIONAL_MODEL_DIR="$PWD/train_graphdit/pretrained/llamole_pretrained_graphdit" \
 python -m uvicorn polymer_api.app:app \
   --host 127.0.0.1 --port 8000 --reload \
   --reload-dir polymer_api --reload-dir grin_frontend

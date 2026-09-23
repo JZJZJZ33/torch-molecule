@@ -10,6 +10,7 @@ const serviceStatus = document.querySelector("#service-status");
 const statusText = document.querySelector("#status-text");
 const isChinese = document.documentElement.lang.startsWith("zh");
 const ui = (english, chinese) => (isChinese ? chinese : english);
+const apiPrefix = isChinese ? "../" : "./";
 
 let models = new Map();
 
@@ -62,12 +63,18 @@ function key(properties) {
 }
 
 function selectedProperties() {
-  return [...propertyOptions.querySelectorAll("input:checked")].map((item) => item.value);
+  return [...propertyOptions.querySelectorAll('input[data-kind="property"]:checked')]
+    .map((item) => item.value);
+}
+
+function unconditionalSelected() {
+  return Boolean(propertyOptions.querySelector('input[data-kind="unconditional"]:checked'));
 }
 
 function updateSelection() {
   const selected = selectedProperties();
-  const model = models.get(key(selected));
+  const unconditional = unconditionalSelected();
+  const model = unconditional ? models.get("") : (selected.length ? models.get(key(selected)) : null);
   const previous = Object.fromEntries(
     [...conditionInputs.querySelectorAll("input")].map((field) => [field.dataset.property, field.value]),
   );
@@ -87,7 +94,8 @@ function updateSelection() {
     conditionInputs.append(label);
   });
   generateButton.disabled = !model;
-  if (!selected.length) modelStatus.textContent = ui("Choose one or more properties.", "请选择一个或多个性能。");
+  if (unconditional && model) modelStatus.textContent = ui("Using the base generator without property targets.", "使用不含性能目标的基础生成模型。");
+  else if (!selected.length) modelStatus.textContent = ui("Choose no conditions or one or more properties.", "请选择无条件生成或一个及以上性能。");
   else if (model) modelStatus.textContent = ui(`Matched model: ${model.properties.map(propertyLabel).join(" + ")}`, `已匹配模型：${model.properties.map(propertyLabel).join(" + ")}`);
   else modelStatus.textContent = ui("No fine-tuned model matches this exact property combination.", "没有与此性能组合完全匹配的微调模型。");
 }
@@ -95,7 +103,7 @@ function updateSelection() {
 async function loadModels() {
   try {
     const [healthResponse, modelResponse] = await Promise.all([
-      fetch("/health"), fetch("/generation-models"),
+      fetch(`${apiPrefix}health`), fetch(`${apiPrefix}generation-models`),
     ]);
     if (!healthResponse.ok) throw new Error(await parseError(healthResponse));
     if (!modelResponse.ok) throw new Error(await parseError(modelResponse));
@@ -106,9 +114,26 @@ async function loadModels() {
     models = new Map(available.map((model) => [key(model.properties), model]));
     const properties = [...new Set(available.flatMap((model) => model.properties))].sort();
     propertyOptions.replaceChildren();
-    if (!properties.length) {
-      propertyOptions.innerHTML = `<span class="generator-placeholder">${ui("No conditional models are configured.", "尚未配置条件生成模型。")}</span>`;
-      modelStatus.textContent = ui("Add a trained conditional model when starting the service.", "启动服务时请添加已训练的条件模型。");
+    if (models.has("")) {
+      const label = document.createElement("label");
+      label.className = "generation-property-option generation-mode-option";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.dataset.kind = "unconditional";
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) {
+          propertyOptions.querySelectorAll('input[data-kind="property"]').forEach((item) => { item.checked = false; });
+        }
+        updateSelection();
+      });
+      const text = document.createElement("span");
+      text.textContent = ui("No conditions", "无条件生成");
+      label.append(checkbox, text);
+      propertyOptions.append(label);
+    }
+    if (!properties.length && !models.has("")) {
+      propertyOptions.innerHTML = `<span class="generator-placeholder">${ui("No generation models are configured.", "尚未配置生成模型。")}</span>`;
+      modelStatus.textContent = ui("Add a trained model when starting the service.", "启动服务时请添加已训练模型。");
       return;
     }
     properties.forEach((name) => {
@@ -117,7 +142,14 @@ async function loadModels() {
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
       checkbox.value = name;
-      checkbox.addEventListener("change", updateSelection);
+      checkbox.dataset.kind = "property";
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) {
+          const unconditional = propertyOptions.querySelector('input[data-kind="unconditional"]');
+          if (unconditional) unconditional.checked = false;
+        }
+        updateSelection();
+      });
       const text = document.createElement("span");
       text.textContent = propertyLabel(name);
       label.append(checkbox, text);
@@ -153,6 +185,8 @@ function renderSamples(payload) {
 
 async function generate() {
   const properties = selectedProperties();
+  const unconditional = unconditionalSelected();
+  const modelKey = unconditional ? "" : key(properties);
   const conditions = {};
   for (const field of conditionInputs.querySelectorAll("input")) {
     if (field.value.trim() === "" || !Number.isFinite(Number(field.value))) {
@@ -162,7 +196,7 @@ async function generate() {
     }
     conditions[field.dataset.property] = Number(field.value);
   }
-  if (!models.has(key(properties))) {
+  if (!models.has(modelKey)) {
     errorMessage.textContent = ui("No model matches the selected property combination.", "没有与所选性能组合匹配的模型。");
     return;
   }
@@ -178,7 +212,7 @@ async function generate() {
   results.innerHTML = `<div class="results-placeholder loading-shimmer">${ui("Generating candidates", "正在生成候选结构")}</div>`;
   resultsSummary.textContent = ui("Sampling candidates…", "正在采样候选结构…");
   try {
-    const response = await fetch("/generate", {
+    const response = await fetch(`${apiPrefix}generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ conditions, number: count, batch_size: Math.min(16, count) }),
@@ -191,7 +225,7 @@ async function generate() {
     errorMessage.textContent = error.message || ui("Generation failed.", "生成失败。");
   } finally {
     generateButton.querySelector("span:first-child").textContent = ui("Generate polymers", "生成聚合物");
-    generateButton.disabled = !models.has(key(properties));
+    generateButton.disabled = !models.has(modelKey);
   }
 }
 

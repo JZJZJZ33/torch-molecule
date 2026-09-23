@@ -1,7 +1,8 @@
 # Polymer prediction and generation API
 
-[`app.py`](./app.py) serves GRIN property predictors and Graph-DiT conditional
-generators from one FastAPI process. Models load lazily on their first request.
+[`app.py`](./app.py) serves polymer-property predictors plus unconditional and
+property-guided graph generators from one FastAPI process. Models load lazily on
+their first request.
 
 Configure two model locations:
 
@@ -9,19 +10,30 @@ Configure two model locations:
   subdirectories and `grin_model.pt` checkpoints;
 - `GRAPHDIT_MODEL_ROOT`: a directory containing every available fine-tuned
   conditional Graph-DiT model. Discovery is recursive, so single, duo, and trio
-  model directories may use any layout below this root.
+  model directories may use any layout below this root;
+- `GRAPHDIT_UNCONDITIONAL_MODEL_DIR`: the base-model directory used when the user
+  selects **No conditions**. If unset, the API uses
+  `train_graphdit/pretrained/llamole_pretrained_graphdit` when it exists.
 
-Each Graph-DiT model directory must contain `best_model.pt` and
-`standardization.json`. The API reads `targets` from that metadata and indexes the
-checkpoint by its exact property set. Property order does not matter when making
-a request. Duplicate checkpoints for the same set cause startup discovery to fail
-rather than selecting one ambiguously.
+The generator accepts only the downloaded open-source model format and models
+fine-tuned from it. A fine-tuned directory contains `model.pt`, `config.yaml`,
+`data.meta.json`, `standardization.json`, and `training_config.json`. The original
+unconditional directory contains `model.pt`, `config.yaml`, and `data.meta.json`.
+Older `best_model.pt` checkpoints produced by the local training workflow are not
+discovered or served.
 
-Start locally with the current joint smoke model:
+The API reads `targets` from `standardization.json` and indexes each checkpoint by
+its exact property set. Property order does not matter when making a request.
+Duplicate checkpoints for the same set cause discovery to fail rather than
+selecting one ambiguously.
+
+Start the application with the directory containing the fine-tuned `model.pt`
+models and the original model bundle:
 
 ```bash
 GRIN_MODEL_RUN_DIR="$PWD/train_grin/output_standardized/run_20260921_003803" \
-GRAPHDIT_MODEL_ROOT="$PWD/train_graphdit/output/graphdit_rppd_density_tg" \
+GRAPHDIT_MODEL_ROOT="$PWD/train_graphdit/output/rppd_finetuned" \
+GRAPHDIT_UNCONDITIONAL_MODEL_DIR="$PWD/train_graphdit/pretrained/llamole_pretrained_graphdit" \
 POLYMER_API_DEVICE=cpu \
 python -m uvicorn polymer_api.app:app \
   --host 127.0.0.1 --port 8000 --reload \
@@ -29,8 +41,8 @@ python -m uvicorn polymer_api.app:app \
 ```
 
 Use `POLYMER_API_DEVICE=cuda` on the H20. `GRIN_API_DEVICE` remains accepted as a
-legacy fallback. The predictor is served at `/`, the conditional generator is a
-separate page at `/generator`, and interactive API documentation is at `/docs`.
+legacy fallback. The predictor is served at `/`, the generator is a separate page
+at `/generator`, and interactive API documentation is at `/docs`.
 
 ## Discover models
 
@@ -42,6 +54,20 @@ curl http://localhost:8000/generation-models
 `/generation-models` returns the exact property combination supported by each
 checkpoint. For example, selecting density and Tg matches only a checkpoint whose
 metadata contains exactly `density` and `tg`.
+
+## Generate without property conditions
+
+An empty `conditions` object selects the configured base generator:
+
+```bash
+curl -X POST http://localhost:8000/generate \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "conditions":{},
+    "number":16,
+    "batch_size":8
+  }'
+```
 
 ## Predict properties
 

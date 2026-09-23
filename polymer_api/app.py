@@ -4,14 +4,16 @@ Set ``GRIN_MODEL_RUN_DIR`` to one timestamped training output directory before
 starting the service. If it is unset, the newest run below
 ``train_grin/output_standardized`` is selected automatically.
 
-Set ``GRAPHDIT_MODEL_ROOT`` to a directory containing all fine-tuned conditional
-Graph-DiT model directories. Models are discovered recursively and matched by the
-exact property set recorded in each ``standardization.json``.
+Set ``GRAPHDIT_MODEL_ROOT`` to a directory containing models fine-tuned from the
+downloaded ``model.pt`` bundle. Models are discovered recursively and matched by
+the exact property set recorded in each ``standardization.json``. Set
+``GRAPHDIT_UNCONDITIONAL_MODEL_DIR`` to the original open-source checkpoint bundle.
 
 Example startup command (not executed by this module)::
 
     GRIN_MODEL_RUN_DIR=train_grin/output_standardized/run_20260921_003803 \
-    GRAPHDIT_MODEL_ROOT=train_graphdit/output/graphdit_rppd_density_tg \
+    GRAPHDIT_MODEL_ROOT=train_graphdit/output/rppd_finetuned \
+    GRAPHDIT_UNCONDITIONAL_MODEL_DIR=train_graphdit/pretrained/llamole_pretrained_graphdit \
       uvicorn polymer_api.app:app --host 0.0.0.0 --port 8000
 
 All predictions returned by this API are inverse-transformed to the original
@@ -28,6 +30,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import torch
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, Field
@@ -35,8 +38,9 @@ from rdkit import Chem
 from rdkit.Chem import rdDepictor
 from rdkit.Chem.Draw import rdMolDraw2D
 
-from torch_molecule import GRINMolecularPredictor, GraphDITMolecularGenerator
+from torch_molecule import GRINMolecularPredictor
 from torch_molecule.visualization import generate_uff_conformer
+from train_graphdit.llamole_graphdit import GraphDiT as LlamoleGraphDiT
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
@@ -53,6 +57,7 @@ PUBLIC_ASSETS = frozenset(
 )
 RUN_DIRECTORY_ENV = "GRIN_MODEL_RUN_DIR"
 GENERATOR_ROOT_ENV = "GRAPHDIT_MODEL_ROOT"
+UNCONDITIONAL_GENERATOR_ENV = "GRAPHDIT_UNCONDITIONAL_MODEL_DIR"
 DEVICE_ENV = "POLYMER_API_DEVICE"
 LEGACY_DEVICE_ENV = "GRIN_API_DEVICE"
 EXCLUDED_PUBLIC_PROPERTIES = frozenset({"r2"})
@@ -109,9 +114,8 @@ class MultiPropertyPrediction(BaseModel):
 
 class GenerationRequest(BaseModel):
     conditions: dict[str, float] = Field(
-        ...,
-        min_length=1,
-        description="Exact property set and target values in original RPPD units",
+        default_factory=dict,
+        description="Exact property set and target values; empty selects unconditional generation",
     )
     number: int = Field(default=16, ge=1, le=1000)
     batch_size: int = Field(default=8, ge=1, le=128)
@@ -193,35 +197,55 @@ class LoadedGenerationModel:
     directory: Path
     checkpoint: Path
     transforms: dict[str, dict[str, float]]
-    model: GraphDITMolecularGenerator | None = None
+    condition_slots: dict[str, int]
+    model: LlamoleGraphDiT | None = None
     lock: threading.Lock = field(default_factory=threading.Lock)
 
-    def load(self, device: str) -> GraphDITMolecularGenerator:
+    def load(self, device: str) -> LlamoleGraphDiT:
         with self.lock:
             if self.model is None:
-                model = GraphDITMolecularGenerator(device=device, verbose="none")
-                model.load_from_local(str(self.checkpoint))
-                model.set_params(verbose="none")
+                resolved_device = torch.device(device)
+                dtype = torch.bfloat16 if resolved_device.type == "cuda" else torch.float32
+                model = LlamoleGraphDiT(
+                    self.directory / "config.yaml",
+                    self.directory / "data.meta.json",
+                    dtype,
+                )
+                state = torch.load(
+                    self.checkpoint, map_location="cpu", weights_only=True, mmap=True
+                )
+                model.denoiser.load_state_dict(state, strict=True)
+                model.to(device=resolved_device, dtype=dtype)
+                model.eval()
                 self.model = model
             return self.model
 
     def generate(
         self, conditions: dict[str, float], number: int, batch_size: int, device: str
     ) -> list[GeneratedPolymer]:
-        labels = np.array(
-            [[
-                (conditions[name] - self.transforms[name]["mean"])
-                / self.transforms[name]["std"]
-                for name in self.properties
-            ]],
-            dtype=np.float32,
-        )
-        outputs: list[str] = []
         model = self.load(device)
-        with self.lock:
+        resolved_device = next(model.parameters()).device
+        outputs: list[str] = []
+        with self.lock, torch.inference_mode():
             for start in range(0, number, batch_size):
                 current = min(batch_size, number - start)
-                outputs.extend(model.generate(labels=np.repeat(labels, current, axis=0)))
+                properties = torch.full(
+                    (current, model.ydim),
+                    float("nan"),
+                    dtype=model.model_dtype,
+                    device=resolved_device,
+                )
+                for name in self.properties:
+                    properties[:, self.condition_slots[name]] = (
+                        conditions[name] - self.transforms[name]["mean"]
+                    ) / self.transforms[name]["std"]
+                text = torch.full(
+                    (current, model.text_input_size),
+                    float("nan"),
+                    dtype=model.model_dtype,
+                    device=resolved_device,
+                )
+                outputs.extend(model.generate(properties, text, no_label_index=-999.0))
         return [inspect_generated_smiles(smiles) for smiles in outputs]
 
 
@@ -273,6 +297,48 @@ def resolve_generation_root() -> Path | None:
     if not path.is_absolute():
         path = REPOSITORY_ROOT / path
     return path.resolve()
+
+
+def resolve_unconditional_generation_directory() -> Path | None:
+    configured = os.environ.get(UNCONDITIONAL_GENERATOR_ENV)
+    if configured:
+        path = Path(configured).expanduser()
+        if not path.is_absolute():
+            path = REPOSITORY_ROOT / path
+        return path.resolve()
+    default = REPOSITORY_ROOT / "train_graphdit/pretrained/llamole_pretrained_graphdit"
+    return default.resolve() if default.is_dir() else None
+
+
+def generation_model_from_directory(
+    directory: Path,
+    properties: tuple[str, ...],
+    transforms: dict[str, dict[str, float]],
+) -> LoadedGenerationModel:
+    checkpoint = directory / "model.pt"
+    if (
+        checkpoint.is_file()
+        and (directory / "config.yaml").is_file()
+        and (directory / "data.meta.json").is_file()
+    ):
+        slots = {name: index for index, name in enumerate(properties)}
+        training_config = directory / "training_config.json"
+        if training_config.is_file():
+            payload = json.loads(training_config.read_text(encoding="utf-8"))
+            configured_slots = payload.get("condition_slots", {})
+            slots = {name: int(configured_slots.get(name, slots[name])) for name in properties}
+        if len(set(slots.values())) != len(slots) or any(not 0 <= slot < 10 for slot in slots.values()):
+            raise RuntimeError(f"Invalid condition-slot mapping in {directory}")
+        return LoadedGenerationModel(
+            properties=properties,
+            directory=directory.resolve(),
+            checkpoint=checkpoint.resolve(),
+            transforms=transforms,
+            condition_slots=slots,
+        )
+    raise RuntimeError(
+        f"Expected model.pt, config.yaml and data.meta.json in generation model directory {directory}"
+    )
 
 
 class ModelRegistry:
@@ -352,22 +418,20 @@ class GenerationModelRegistry:
             if self._models is not None:
                 return self._models
             root = resolve_generation_root()
-            if root is None:
-                self._models = {}
-                return self._models
-            if not root.is_dir():
+            if root is not None and not root.is_dir():
                 raise RuntimeError(f"Generation model root does not exist: {root}")
 
             models: dict[tuple[str, ...], LoadedGenerationModel] = {}
-            for checkpoint in sorted(root.rglob("best_model.pt")):
-                directory = checkpoint.parent
-                metadata_path = directory / "standardization.json"
-                if not metadata_path.is_file():
+            metadata_paths = sorted(root.rglob("standardization.json")) if root else []
+            for metadata_path in metadata_paths:
+                directory = metadata_path.parent
+                if not all(
+                    (directory / name).is_file()
+                    for name in ("model.pt", "config.yaml", "data.meta.json")
+                ):
                     continue
                 metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
                 properties = tuple(metadata.get("targets", []))
-                if not properties:
-                    continue
                 transforms = metadata.get("target_transforms", {})
                 if set(transforms) != set(properties):
                     raise RuntimeError(f"Incomplete target transforms in {metadata_path}")
@@ -384,12 +448,11 @@ class GenerationModelRegistry:
                         "Duplicate generation models for property set "
                         f"{list(key)}: {models[key].directory} and {directory}"
                     )
-                models[key] = LoadedGenerationModel(
-                    properties=properties,
-                    directory=directory.resolve(),
-                    checkpoint=checkpoint.resolve(),
-                    transforms=transforms,
-                )
+                models[key] = generation_model_from_directory(directory, properties, transforms)
+
+            unconditional = resolve_unconditional_generation_directory()
+            if () not in models and unconditional is not None:
+                models[()] = generation_model_from_directory(unconditional, (), {})
             self._root = root
             self._models = models
             return models
@@ -462,11 +525,13 @@ def render_frontend(template_name: str, script_name: str) -> HTMLResponse:
     html = (FRONTEND_ROOT / template_name).read_text(encoding="utf-8")
     styles = (FRONTEND_ROOT / "styles.css").read_text(encoding="utf-8")
     script = (FRONTEND_ROOT / script_name).read_text(encoding="utf-8")
-    html = html.replace(
-        '<link rel="stylesheet" href="/static/styles.css" />',
-        f"<style>\n{styles}\n</style>",
-    )
-    html = html.replace(f'<script src="/static/{script_name}" defer></script>', "")
+    for stylesheet_path in ("/static/styles.css", "./static/styles.css", "../static/styles.css"):
+        html = html.replace(
+            f'<link rel="stylesheet" href="{stylesheet_path}" />',
+            f"<style>\n{styles}\n</style>",
+        )
+    for script_path in (f"/static/{script_name}", f"./static/{script_name}", f"../static/{script_name}"):
+        html = html.replace(f'<script src="{script_path}" defer></script>', "")
     # Inline scripts do not honor ``defer``. Place the application script after
     # the page markup so all queried controls exist before JavaScript executes.
     html = html.replace("</body>", f"<script>\n{script}\n</script>\n</body>")

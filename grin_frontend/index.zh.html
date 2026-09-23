@@ -5,21 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="polyNOVA——智能聚合物发现与电池材料设计平台。" />
     <title>性能预测 · polyNOVA</title>
-    <link rel="stylesheet" href="/static/styles.css" />
+    <link rel="stylesheet" href="./static/styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/3dmol@2.5.5/build/3Dmol-min.js"></script>
-    <script src="/static/app.js" defer></script>
+    <script src="./static/app.js" defer></script>
   </head>
   <body>
     <header class="site-header">
-      <a class="brand" href="./" aria-label="polyNOVA home"><span class="brand-wordmark"><span>poly</span>NOVA</span></a>
+      <a class="brand" href="./zh" aria-label="polyNOVA home"><span class="brand-wordmark"><span>poly</span>NOVA</span></a>
       <nav class="header-nav" aria-label="主导航">
-        <a class="active" href="/zh" aria-current="page">性能预测</a>
-        <a href="/zh/generator">分子生成</a>
+        <a class="active" href="./zh" aria-current="page">性能预测</a>
+        <a href="./zh/generator">分子生成</a>
         <a class="upcoming" href="#" aria-disabled="true" title="自动化聚合物模拟流程">模拟 <small>即将推出</small></a>
         <a class="upcoming" href="#" aria-disabled="true" title="电极配方预测">配方 <small>即将推出</small></a>
         <a class="upcoming" href="#" aria-disabled="true" title="电池级建模">电池 <small>即将推出</small></a>
       </nav>
-      <div class="header-tools"><div class="language-switcher" aria-label="语言"><a href="/">EN</a><span>中文</span></div><div class="service-status" id="service-status"><span class="status-dot"></span><span id="status-text">正在检查模型</span></div></div>
+      <div class="header-tools"><div class="language-switcher" aria-label="语言"><a href="./">EN</a><span>中文</span></div><div class="service-status" id="service-status"><span class="status-dot"></span><span id="status-text">正在检查模型</span></div></div>
     </header>
     <main>
       <section class="page-heading">
@@ -75,11 +75,11 @@
         <div class="model-explainers">
           <article class="model-explainer">
             <div class="model-copy"><h3>重复不变图预测器</h3><p>预测器将聚合物表示为分子图，并学习当相同重复单元扩展为更长链时仍保持稳定的特征。</p><ol><li><strong>聚合物感知数据增强</strong>在训练中创建重复长度不同但等价的链。</li><li><strong>图消息传递</strong>融合结构中的原子与化键信息。</li><li><strong>不变池化与回归</strong>输出材料性能估计，降低重复单元书写方式带来的影响。</li></ol></div>
-            <figure class="model-figure"><img src="/assets/repetition-predictor.png" alt="均聚物和嵌段共聚物重复单元增强示意图" loading="lazy" /><figcaption>该图说明重复单元增强的作用：扩展后的结构为均聚物和嵌段共聚物保留真实的聚合模式。</figcaption></figure>
+            <figure class="model-figure"><img src="./assets/repetition-predictor.png" alt="均聚物和嵌段共聚物重复单元增强示意图" loading="lazy" /><figcaption>该图说明重复单元增强的作用：扩展后的结构为均聚物和嵌段共聚物保留真实的聚合模式。</figcaption></figure>
           </article>
           <article class="model-explainer">
             <div class="model-copy"><h3>多模态聚合物表示</h3><p>该方法同时学习聚合物字符串与三维构象，使化学连接关系和空间几何共同参与性能预测。</p><ol><li><strong>一维表示网络</strong>读取掩码 pSMILES，学习化学序列上下文。</li><li><strong>三维表示网络</strong>从加噪原子坐标与分子几何中学习。</li><li><strong>多任务预训练</strong>重建掩码标记、去噪坐标，并在性能微调前对齐两种潜在表示。</li></ol></div>
-            <figure class="model-figure wide-figure"><img src="/assets/multimodal-predictor.png" alt="结合 pSMILES 与三维构象的多模态架构" loading="lazy" /><figcaption>两个分支学习互补的一维和三维视图，在共享表示中进行对齐，再将结果用于下游预测任务。</figcaption></figure>
+            <figure class="model-figure wide-figure"><img src="./assets/multimodal-predictor.png" alt="结合 pSMILES 与三维构象的多模态架构" loading="lazy" /><figcaption>两个分支学习互补的一维和三维视图，在共享表示中进行对齐，再将结果用于下游预测任务。</figcaption></figure>
           </article>
         </div>
       </section>

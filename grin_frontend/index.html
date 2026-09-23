@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="polyNOVA — intelligent polymer discovery and battery materials design." />
     <title>Property Predictor · polyNOVA</title>
-    <link rel="stylesheet" href="/static/styles.css" />
+    <link rel="stylesheet" href="./static/styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/3dmol@2.5.5/build/3Dmol-min.js"></script>
-    <script src="/static/app.js" defer></script>
+    <script src="./static/app.js" defer></script>
   </head>
   <body>
     <header class="site-header">
@@ -19,7 +19,7 @@
         <a class="upcoming" href="#" aria-disabled="true" title="Electrode formulation prediction">Formulation <small>SOON</small></a>
         <a class="upcoming" href="#" aria-disabled="true" title="Battery-level modeling">Battery <small>SOON</small></a>
       </nav>
-      <div class="header-tools"><div class="language-switcher" aria-label="Language"><span>EN</span><a href="/zh">中文</a></div><div class="service-status" id="service-status"><span class="status-dot"></span><span id="status-text">Checking models</span></div></div>
+      <div class="header-tools"><div class="language-switcher" aria-label="Language"><span>EN</span><a href="./zh">中文</a></div><div class="service-status" id="service-status"><span class="status-dot"></span><span id="status-text">Checking models</span></div></div>
     </header>
     <main>
       <section class="page-heading">
@@ -75,11 +75,11 @@
         <div class="model-explainers">
           <article class="model-explainer">
             <div class="model-copy"><h3>Repetition-invariant graph predictor</h3><p>The predictor represents a polymer as a molecular graph and learns features that remain stable when the same repeat unit is expanded into longer chains.</p><ol><li><strong>Polymer-aware augmentation</strong> creates equivalent chains with different repetition lengths during learning.</li><li><strong>Graph message passing</strong> combines atom and bond information across the structure.</li><li><strong>Invariant pooling and regression</strong> produce a material-property estimate that is less sensitive to how the repeat unit was written.</li></ol></div>
-            <figure class="model-figure"><img src="/assets/repetition-predictor.png" alt="Diagram comparing repeat-unit augmentation for homopolymers and block copolymers" loading="lazy" /><figcaption>The diagram shows why repeat-unit augmentation matters: expanded structures preserve the true polymer pattern for both homopolymers and block copolymers.</figcaption></figure>
+            <figure class="model-figure"><img src="./assets/repetition-predictor.png" alt="Diagram comparing repeat-unit augmentation for homopolymers and block copolymers" loading="lazy" /><figcaption>The diagram shows why repeat-unit augmentation matters: expanded structures preserve the true polymer pattern for both homopolymers and block copolymers.</figcaption></figure>
           </article>
           <article class="model-explainer">
             <div class="model-copy"><h3>Multimodal polymer representation</h3><p>This method learns from both a polymer string and its three-dimensional conformation so chemical connectivity and spatial geometry can inform the same prediction.</p><ol><li><strong>1D representation network</strong> reads masked pSMILES and learns chemical sequence context.</li><li><strong>3D representation network</strong> learns from noisy atomic coordinates and molecular geometry.</li><li><strong>Multitask pretraining</strong> reconstructs masked tokens, denoises coordinates, and aligns both latent representations before property fine-tuning.</li></ol></div>
-            <figure class="model-figure wide-figure"><img src="/assets/multimodal-predictor.png" alt="Multimodal architecture combining pSMILES and three-dimensional conformation" loading="lazy" /><figcaption>The two branches learn complementary 1D and 3D views, align them in a shared representation, and pass that representation to downstream prediction tasks.</figcaption></figure>
+            <figure class="model-figure wide-figure"><img src="./assets/multimodal-predictor.png" alt="Multimodal architecture combining pSMILES and three-dimensional conformation" loading="lazy" /><figcaption>The two branches learn complementary 1D and 3D views, align them in a shared representation, and pass that representation to downstream prediction tasks.</figcaption></figure>
           </article>
         </div>
       </section>

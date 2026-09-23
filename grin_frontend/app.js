@@ -134,7 +134,7 @@ async function parseError(response) {
 
 async function checkHealth() {
   try {
-    const response = await fetch("/health");
+    const response = await fetch("./health");
     if (!response.ok) throw new Error(await parseError(response));
     const health = await response.json();
     serviceStatus.classList.add("ready");
@@ -257,7 +257,7 @@ async function predict() {
   predictButton.querySelector("span:first-child").textContent = ui("Running property models…", "正在运行性能模型…");
   showLoading();
 
-  const structureRequest = fetch("/structure", {
+  const structureRequest = fetch("./structure", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ smiles }),
@@ -265,7 +265,7 @@ async function predict() {
         if (!response.ok) throw new Error(await parseError(response));
         return response.json();
       });
-  const predictionRequest = fetch("/predict", {
+  const predictionRequest = fetch("./predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ smiles: [smiles] }),
