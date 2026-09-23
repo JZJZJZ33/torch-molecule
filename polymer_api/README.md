@@ -118,7 +118,11 @@ The request above selects the density + Tg joint model regardless of JSON key
 order. If only separate density and Tg checkpoints exist, the request returns 404;
 separate models are never combined implicitly.
 
-Responses retain every sampling attempt and report RDKit validity, two-attachment
-polymer validity, and rejection reasons. Property values supplied to the endpoint
-use original RPPD units and are standardized with the selected model's saved
-training statistics.
+The service rejects invalid, disconnected, and duplicate samples, including every
+SMILES containing a `.` fragment separator. It resamples up to ten times the
+requested count and returns only sanitized, unique structures with exactly two
+valid polymer attachment points. The response reports `attempt_count` and
+`complete`; `complete` is false when the attempt limit is reached before enough
+valid structures are found. Property values supplied to the endpoint use original
+RPPD units and are standardized with the selected model's saved training
+statistics.

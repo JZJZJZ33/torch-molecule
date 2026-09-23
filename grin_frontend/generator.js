@@ -166,18 +166,29 @@ async function loadModels() {
 
 function renderSamples(payload) {
   results.replaceChildren();
-  const validCount = payload.samples.filter((sample) => sample.polymer_valid).length;
-  resultsSummary.textContent = ui(`${validCount} of ${payload.samples.length} candidates passed repeat-unit validation.`, `${payload.samples.length} 个候选结构中有 ${validCount} 个通过重复单元验证。`);
+  const requestedCount = payload.requested_count ?? payload.samples.length;
+  const attemptCount = payload.attempt_count ?? payload.samples.length;
+  if (payload.samples.length === requestedCount) {
+    resultsSummary.textContent = ui(
+      `Generated ${payload.samples.length} valid unique polymers from ${attemptCount} attempts.`,
+      `经过 ${attemptCount} 次采样，生成了 ${payload.samples.length} 个有效且不重复的聚合物。`,
+    );
+  } else {
+    resultsSummary.textContent = ui(
+      `Generated ${payload.samples.length} of ${requestedCount} requested valid unique polymers after ${attemptCount} attempts.`,
+      `经过 ${attemptCount} 次采样，获得了所需 ${requestedCount} 个结构中的 ${payload.samples.length} 个有效且不重复的聚合物。`,
+    );
+  }
   payload.samples.forEach((sample, index) => {
     const card = document.createElement("article");
-    card.className = `generation-card${sample.polymer_valid ? " valid" : " invalid"}`;
+    card.className = "generation-card valid";
     const heading = document.createElement("strong");
     heading.textContent = ui(`Candidate ${index + 1}`, `候选结构 ${index + 1}`);
     const status = document.createElement("span");
     status.className = "generation-card-status";
-    status.textContent = sample.polymer_valid ? ui("Valid repeat unit", "有效重复单元") : sample.rejection_reason.replaceAll("_", " ");
+    status.textContent = ui("Valid repeat unit", "有效重复单元");
     const smiles = document.createElement("code");
-    smiles.textContent = sample.smiles || ui("No valid SMILES produced", "未生成有效 SMILES");
+    smiles.textContent = sample.smiles;
     card.append(heading, status, smiles);
     results.append(card);
   });

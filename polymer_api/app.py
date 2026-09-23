@@ -63,6 +63,7 @@ UNCONDITIONAL_GENERATOR_ENV = "GRAPHDIT_UNCONDITIONAL_MODEL_DIR"
 DEVICE_ENV = "POLYMER_API_DEVICE"
 LEGACY_DEVICE_ENV = "GRIN_API_DEVICE"
 EXCLUDED_PUBLIC_PROPERTIES = frozenset({"r2"})
+GENERATION_ATTEMPT_MULTIPLIER = 10
 
 
 class PredictionRequest(BaseModel):
@@ -140,6 +141,9 @@ class GenerationResponse(BaseModel):
     properties: list[str]
     requested: dict[str, float]
     model_directory: str
+    requested_count: int
+    attempt_count: int
+    complete: bool
     samples: list[GeneratedPolymer]
 
 
@@ -170,14 +174,28 @@ class LoadedPropertyModel:
 
 
 def inspect_generated_smiles(smiles: str | None) -> GeneratedPolymer:
-    molecule = Chem.MolFromSmiles(smiles) if smiles else None
-    if molecule is None:
+    if not smiles:
         return GeneratedPolymer(
-            smiles=smiles, valid=False, polymer_valid=False,
+            smiles=None, valid=False, polymer_valid=False,
             rejection_reason="invalid_smiles",
         )
+    if "." in smiles:
+        return GeneratedPolymer(
+            smiles=None, valid=True, polymer_valid=False,
+            rejection_reason="disconnected",
+        )
+    try:
+        molecule = Chem.MolFromSmiles(smiles)
+    except Exception:
+        molecule = None
+    if molecule is None:
+        return GeneratedPolymer(
+            smiles=None, valid=False, polymer_valid=False,
+            rejection_reason="invalid_smiles",
+        )
+    canonical_smiles = Chem.MolToSmiles(molecule, canonical=True)
     attachment_atoms = [atom for atom in molecule.GetAtoms() if atom.GetAtomicNum() == 0]
-    if len(Chem.GetMolFrags(molecule)) != 1:
+    if "." in canonical_smiles or len(Chem.GetMolFrags(molecule)) != 1:
         reason = "disconnected"
     elif len(attachment_atoms) != 2:
         reason = "attachment_count"
@@ -186,7 +204,7 @@ def inspect_generated_smiles(smiles: str | None) -> GeneratedPolymer:
     else:
         reason = ""
     return GeneratedPolymer(
-        smiles=smiles,
+        smiles=canonical_smiles if not reason else None,
         valid=True,
         polymer_valid=not reason,
         rejection_reason=reason,
@@ -224,13 +242,16 @@ class LoadedGenerationModel:
 
     def generate(
         self, conditions: dict[str, float], number: int, batch_size: int, device: str
-    ) -> list[GeneratedPolymer]:
+    ) -> tuple[list[GeneratedPolymer], int]:
         model = self.load(device)
         resolved_device = next(model.parameters()).device
-        outputs: list[str] = []
+        accepted: list[GeneratedPolymer] = []
+        accepted_smiles: set[str] = set()
+        attempts = 0
+        max_attempts = number * GENERATION_ATTEMPT_MULTIPLIER
         with self.lock, torch.inference_mode():
-            for start in range(0, number, batch_size):
-                current = min(batch_size, number - start)
+            while len(accepted) < number and attempts < max_attempts:
+                current = min(batch_size, max_attempts - attempts)
                 properties = torch.full(
                     (current, model.ydim),
                     float("nan"),
@@ -247,8 +268,21 @@ class LoadedGenerationModel:
                     dtype=model.model_dtype,
                     device=resolved_device,
                 )
-                outputs.extend(model.generate(properties, text, no_label_index=-999.0))
-        return [inspect_generated_smiles(smiles) for smiles in outputs]
+                outputs = model.generate(properties, text, no_label_index=-999.0)
+                attempts += len(outputs)
+                if not outputs:
+                    break
+                for smiles in outputs:
+                    inspected = inspect_generated_smiles(smiles)
+                    if not inspected.polymer_valid or inspected.smiles is None:
+                        continue
+                    if "." in inspected.smiles or inspected.smiles in accepted_smiles:
+                        continue
+                    accepted_smiles.add(inspected.smiles)
+                    accepted.append(inspected)
+                    if len(accepted) == number:
+                        break
+        return accepted, attempts
 
 
 def resolve_run_directory() -> Path:
@@ -712,7 +746,7 @@ def generate_polymers(request: GenerationRequest) -> GenerationResponse:
         )
     item = generation_registry.get(properties)
     try:
-        samples = item.generate(
+        samples, attempt_count = item.generate(
             request.conditions, request.number, request.batch_size, api_device()
         )
     except Exception as exc:
@@ -721,5 +755,8 @@ def generate_polymers(request: GenerationRequest) -> GenerationResponse:
         properties=list(item.properties),
         requested={name: request.conditions[name] for name in item.properties},
         model_directory=str(item.directory),
+        requested_count=request.number,
+        attempt_count=attempt_count,
+        complete=len(samples) == request.number,
         samples=samples,
     )
