@@ -1,0 +1,19 @@
+{
+  "aggregation": "median",
+  "input": "/Users/jz/Documents/torch-molecule/data_process/output/rppd_clean.csv",
+  "model": "GRINMolecularPredictor",
+  "outlier_iqr": 3.0,
+  "rows_before_outlier_filter": 522,
+  "seed": 42,
+  "split_rows": {
+    "test": 94,
+    "train": 326,
+    "validation": 47
+  },
+  "target": "static_dielectric_const",
+  "target_transform": {
+    "mean": 1.2898273165778367,
+    "std": 0.28102091349278124
+  },
+  "unique_structures": 467
+}

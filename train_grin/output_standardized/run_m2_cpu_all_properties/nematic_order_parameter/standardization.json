@@ -1,0 +1,8 @@
+{
+  "fitted_on": "training split only",
+  "forward_transform": "standardized = (original - mean) / std",
+  "inverse_transform": "original = standardized * std + mean",
+  "mean": 0.05160719169746154,
+  "std": 0.023463073838069066,
+  "target": "nematic_order_parameter"
+}

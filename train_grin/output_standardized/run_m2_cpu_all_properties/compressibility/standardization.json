@@ -1,0 +1,8 @@
+{
+  "fitted_on": "training split only",
+  "forward_transform": "standardized = (original - mean) / std",
+  "inverse_transform": "original = standardized * std + mean",
+  "mean": 3.79398067905687e-10,
+  "std": 1.0359475043380809e-10,
+  "target": "compressibility"
+}

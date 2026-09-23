@@ -1,0 +1,8 @@
+{
+  "fitted_on": "training split only",
+  "forward_transform": "standardized = (original - mean) / std",
+  "inverse_transform": "original = standardized * std + mean",
+  "mean": 6.584061967259444e-13,
+  "std": 4.64246616876751e-13,
+  "target": "self-diffusion"
+}

@@ -1,0 +1,8 @@
+{
+  "fitted_on": "training split only",
+  "forward_transform": "standardized = (original - mean) / std",
+  "inverse_transform": "original = standardized * std + mean",
+  "mean": 2896250516.803106,
+  "std": 766852915.6308541,
+  "target": "isentropic_bulk_modulus"
+}

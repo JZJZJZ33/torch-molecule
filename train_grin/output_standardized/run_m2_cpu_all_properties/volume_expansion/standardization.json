@@ -1,0 +1,8 @@
+{
+  "fitted_on": "training split only",
+  "forward_transform": "standardized = (original - mean) / std",
+  "inverse_transform": "original = standardized * std + mean",
+  "mean": 0.00034208000269140556,
+  "std": 0.00017262541883361957,
+  "target": "volume_expansion"
+}
