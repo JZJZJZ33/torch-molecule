@@ -215,3 +215,6 @@ model_evaluation/output/*
 
 # Graph-generation runs are local/server artifacts.
 train_graphdit/output/
+
+# Downloaded third-party pretrained bundles.
+train_graphdit/pretrained/

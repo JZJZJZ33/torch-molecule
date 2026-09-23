@@ -9,6 +9,96 @@ This workflow has two stages:
 
 Run commands from the repository root in the `torch-molecule` environment.
 
+## Fine-tune the downloaded Llamole Graph-DiT checkpoint
+
+The Hugging Face checkpoint bundle is stored at:
+
+```text
+train_graphdit/pretrained/llamole_pretrained_graphdit/
+├── model.pt
+├── config.yaml
+└── data.meta.json
+```
+
+The checkpoint bundle is not a standalone Python model. `model.pt` stores the
+learned tensors, `config.yaml` stores architecture and diffusion settings, and
+`data.meta.json` stores the atom vocabulary and graph distributions. The Python
+classes that connect those tensors are supplied by:
+
+```text
+train_graphdit/llamole_graphdit/
+```
+
+These files must also be present on the H20 server. The original project assumes
+its complete repository is installed and therefore already has these classes;
+this repository keeps only the graph-decoder portion needed by the RPPD trainer.
+The downloaded weights cannot be loaded by this repository's smaller Graph-DiT
+implementation because its layer names and tensor shapes differ.
+
+The minimum server layout for this fine-tuning workflow is:
+
+```text
+data/
+└── 20260920_rppd.csv
+data_process/
+└── common.py
+train_grin/
+└── properties.py
+train_graphdit/
+├── common.py
+├── finetune_llamole_graphdit.py
+├── llamole_graphdit/
+│   ├── __init__.py
+│   ├── conditions.py
+│   ├── diffusion_model.py
+│   ├── diffusion_utils.py
+│   ├── layers.py
+│   ├── molecule_utils.py
+│   └── transformer.py
+└── pretrained/
+    └── llamole_pretrained_graphdit/
+        ├── model.pt
+        ├── config.yaml
+        └── data.meta.json
+```
+
+Copying the complete repository plus the ignored pretrained checkpoint directory
+is the simplest way to reproduce this layout. Git does not include `model.pt`.
+
+Validate the bundle and the requested RPPD columns without starting training:
+
+```bash
+python train_graphdit/finetune_llamole_graphdit.py \
+  --property density,tg \
+  --output-dir train_graphdit/output/rppd_density_tg_llamole \
+  --check-only
+```
+
+Fine-tune one joint density and Tg model on a CUDA server:
+
+```bash
+python train_graphdit/finetune_llamole_graphdit.py \
+  --pretrained-dir train_graphdit/pretrained/llamole_pretrained_graphdit \
+  --input data/20260920_rppd.csv \
+  --property density,tg \
+  --output-dir train_graphdit/output/rppd_density_tg_llamole \
+  --device cuda \
+  --precision bf16 \
+  --batch-size 1 \
+  --gradient-accumulation 16 \
+  --learning-rate 5e-5 \
+  --epochs 200 \
+  --patience 30
+```
+
+The 16 GB starting configuration trains the two property encoders, the final two
+transformer blocks, and the output layer while keeping the rest of the downloaded
+574M-parameter model frozen. Gradient checkpointing is enabled. If memory is still
+insufficient, add `--last-layers 0` to train only the property encoders.
+
+This is a separate workflow from `finetune.py`, which only accepts checkpoints
+created by this repository's smaller Graph-DiT implementation.
+
 The PI1M source file in this repository is:
 
 ```text
