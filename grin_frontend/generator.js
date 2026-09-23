@@ -226,7 +226,7 @@ async function generate() {
     const response = await fetch(`${apiPrefix}generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conditions, number: count, batch_size: Math.min(16, count) }),
+      body: JSON.stringify({ conditions, number: count, batch_size: 32 }),
     });
     if (!response.ok) throw new Error(await parseError(response));
     renderSamples(await response.json());

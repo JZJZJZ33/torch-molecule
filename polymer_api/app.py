@@ -63,7 +63,9 @@ UNCONDITIONAL_GENERATOR_ENV = "GRAPHDIT_UNCONDITIONAL_MODEL_DIR"
 DEVICE_ENV = "POLYMER_API_DEVICE"
 LEGACY_DEVICE_ENV = "GRIN_API_DEVICE"
 EXCLUDED_PUBLIC_PROPERTIES = frozenset({"r2"})
-GENERATION_ATTEMPT_MULTIPLIER = 10
+GENERATION_POOL_MULTIPLIER = 20
+MIN_GENERATION_POOL_SIZE = 256
+MAX_GENERATION_POOL_SIZE = 5000
 
 
 class PredictionRequest(BaseModel):
@@ -121,7 +123,13 @@ class GenerationRequest(BaseModel):
         description="Exact property set and target values; empty selects unconditional generation",
     )
     number: int = Field(default=16, ge=1, le=1000)
-    batch_size: int = Field(default=8, ge=1, le=128)
+    batch_size: int = Field(default=32, ge=1, le=128)
+    pool_size: int | None = Field(
+        default=None,
+        ge=1,
+        le=MAX_GENERATION_POOL_SIZE,
+        description="Raw candidate count; omit to use the server-selected pool size",
+    )
 
 
 class GenerationModelInfo(BaseModel):
@@ -241,17 +249,25 @@ class LoadedGenerationModel:
             return self.model
 
     def generate(
-        self, conditions: dict[str, float], number: int, batch_size: int, device: str
+        self,
+        conditions: dict[str, float],
+        number: int,
+        batch_size: int,
+        pool_size: int,
+        device: str,
     ) -> tuple[list[GeneratedPolymer], int]:
         model = self.load(device)
         resolved_device = next(model.parameters()).device
+        raw_outputs: list[str | None] = []
         accepted: list[GeneratedPolymer] = []
         accepted_smiles: set[str] = set()
-        attempts = 0
-        max_attempts = number * GENERATION_ATTEMPT_MULTIPLIER
+
+        # Generate the complete raw pool before applying any chemistry filters.
+        # Each model call remains bounded so the pool is not loaded onto the GPU
+        # all at once.
         with self.lock, torch.inference_mode():
-            while len(accepted) < number and attempts < max_attempts:
-                current = min(batch_size, max_attempts - attempts)
+            while len(raw_outputs) < pool_size:
+                current = min(batch_size, pool_size - len(raw_outputs))
                 properties = torch.full(
                     (current, model.ydim),
                     float("nan"),
@@ -268,21 +284,22 @@ class LoadedGenerationModel:
                     dtype=model.model_dtype,
                     device=resolved_device,
                 )
-                outputs = model.generate(properties, text, no_label_index=-999.0)
-                attempts += len(outputs)
+                outputs = list(model.generate(properties, text, no_label_index=-999.0))
                 if not outputs:
                     break
-                for smiles in outputs:
-                    inspected = inspect_generated_smiles(smiles)
-                    if not inspected.polymer_valid or inspected.smiles is None:
-                        continue
-                    if "." in inspected.smiles or inspected.smiles in accepted_smiles:
-                        continue
-                    accepted_smiles.add(inspected.smiles)
-                    accepted.append(inspected)
-                    if len(accepted) == number:
-                        break
-        return accepted, attempts
+                raw_outputs.extend(outputs[:current])
+
+        for smiles in raw_outputs:
+            inspected = inspect_generated_smiles(smiles)
+            if not inspected.polymer_valid or inspected.smiles is None:
+                continue
+            if "." in inspected.smiles or inspected.smiles in accepted_smiles:
+                continue
+            accepted_smiles.add(inspected.smiles)
+            accepted.append(inspected)
+            if len(accepted) == number:
+                break
+        return accepted, len(raw_outputs)
 
 
 def resolve_run_directory() -> Path:
@@ -744,10 +761,29 @@ def generate_polymers(request: GenerationRequest) -> GenerationResponse:
             status_code=422,
             detail={"message": "Condition values must be finite", "properties": invalid_values},
         )
+    pool_size = request.pool_size
+    if pool_size is None:
+        pool_size = min(
+            MAX_GENERATION_POOL_SIZE,
+            max(
+                MIN_GENERATION_POOL_SIZE,
+                request.number * GENERATION_POOL_MULTIPLIER,
+                request.batch_size,
+            ),
+        )
+    if pool_size < request.number:
+        raise HTTPException(
+            status_code=422,
+            detail="pool_size must be greater than or equal to number",
+        )
     item = generation_registry.get(properties)
     try:
         samples, attempt_count = item.generate(
-            request.conditions, request.number, request.batch_size, api_device()
+            request.conditions,
+            request.number,
+            request.batch_size,
+            pool_size,
+            api_device(),
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Generation failed: {exc}") from exc

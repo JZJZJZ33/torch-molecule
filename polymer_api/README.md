@@ -118,11 +118,15 @@ The request above selects the density + Tg joint model regardless of JSON key
 order. If only separate density and Tg checkpoints exist, the request returns 404;
 separate models are never combined implicitly.
 
-The service rejects invalid, disconnected, and duplicate samples, including every
-SMILES containing a `.` fragment separator. It resamples up to ten times the
-requested count and returns only sanitized, unique structures with exactly two
-valid polymer attachment points. The response reports `attempt_count` and
-`complete`; `complete` is false when the attempt limit is reached before enough
-valid structures are found. Property values supplied to the endpoint use original
-RPPD units and are standardized with the selected model's saved training
-statistics.
+The service first generates a large raw candidate pool in GPU-sized batches and
+then filters the complete pool. By default, the pool contains 20 times the
+requested count, with a minimum of 256 and a maximum of 5,000 raw candidates.
+Pass `pool_size` in the request to choose an explicit raw count up to 5,000.
+
+Filtering rejects invalid, disconnected, and duplicate samples, including every
+SMILES containing a `.` fragment separator. The response contains only sanitized,
+unique structures with exactly two valid polymer attachment points. It reports
+`attempt_count` and `complete`; `complete` is false when the candidate pool does
+not contain enough acceptable structures. Property values supplied to the
+endpoint use original RPPD units and are standardized with the selected model's
+saved training statistics.
