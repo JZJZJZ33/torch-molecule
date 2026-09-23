@@ -50,6 +50,7 @@ def graph_to_smiles(molecule_list: List[Tuple], atom_decoder: list) -> List[Opti
 
     smiles_list = []
     for index, graph in enumerate(molecule_list):
+        mol_init = None
         try:
             atom_types, edge_types = graph
             mol_init = build_molecule_with_partial_charges(atom_types, edge_types, atom_decoder)
@@ -96,14 +97,16 @@ def graph_to_smiles(molecule_list: List[Tuple], atom_decoder: list) -> List[Opti
         except Exception as e:
             logger.error(f"Error processing molecule {index}: {str(e)}")
             try:
-                # Fallback to RDKit's MolToSmiles if everything else fails
-                fallback_smiles = Chem.MolToSmiles(mol_init)
-                if fallback_smiles:
-                    smiles_list.append(fallback_smiles)
+                # Keep a fallback only if RDKit can parse and sanitize it again.
+                fallback_smiles = Chem.MolToSmiles(mol_init) if mol_init is not None else None
+                fallback_mol = get_mol(fallback_smiles) if fallback_smiles else None
+                validated_smiles = mol2smiles(fallback_mol)
+                if validated_smiles and check_polymer(validated_smiles):
+                    smiles_list.append(validated_smiles)
                     logger.warning(f"Used RDKit MolToSmiles fallback for molecule {index}")
                 else:
                     smiles_list.append(None)
-                    logger.warning(f"RDKit MolToSmiles fallback failed for molecule {index}, appending None")
+                    logger.warning(f"RDKit fallback was invalid for molecule {index}, appending None")
             except Exception as e2:
                 logger.error(f"All attempts failed for molecule {index}: {str(e2)}")
                 smiles_list.append(None)
@@ -241,9 +244,12 @@ def mol2smiles(mol):
         return None
     try:
         Chem.SanitizeMol(mol)
-    except ValueError:
+    except Exception:
         return None
-    return Chem.MolToSmiles(mol)
+    try:
+        return Chem.MolToSmiles(mol)
+    except Exception:
+        return None
 
 
 def check_valency(mol):
@@ -263,20 +269,40 @@ def check_valency(mol):
 
 
 ##### connect fragements
+def _update_property_cache(mol):
+    """Prepare an unsanitized RDKit molecule for valence queries."""
+    try:
+        mol.UpdatePropertyCache(strict=False)
+        return True
+    except Exception:
+        return False
+
+
+def _implicit_valence(atom):
+    try:
+        return atom.GetValence(Chem.ValenceType.IMPLICIT)
+    except AttributeError:
+        return atom.GetImplicitValence()
+
+
 def select_atom_with_available_valency(frag):
+    if not _update_property_cache(frag):
+        return None
     atoms = list(frag.GetAtoms())
     random.shuffle(atoms)
     for atom in atoms:
-        if atom.GetAtomicNum() > 1 and atom.GetImplicitValence() > 0:
+        if atom.GetAtomicNum() > 1 and _implicit_valence(atom) > 0:
             return atom
     return None
 
 
 def select_atoms_with_available_valency(frag):
+    if not _update_property_cache(frag):
+        return []
     return [
         atom
         for atom in frag.GetAtoms()
-        if atom.GetAtomicNum() > 1 and atom.GetImplicitValence() > 0
+        if atom.GetAtomicNum() > 1 and _implicit_valence(atom) > 0
     ]
 
 
@@ -291,17 +317,6 @@ def try_to_connect_fragments(combined_mol, frag, atom1, atom2):
         for atom in trial_frag.GetAtoms()
     }
 
-    # Add the bond between the suitable atoms from each fragment
-    trial_combined_mol.AddBond(
-        atom1.GetIdx(), new_indices[atom2.GetIdx()], Chem.BondType.SINGLE
-    )
-
-    # Adjust the hydrogen count of the connected atoms
-    for atom_idx in [atom1.GetIdx(), new_indices[atom2.GetIdx()]]:
-        atom = trial_combined_mol.GetAtomWithIdx(atom_idx)
-        num_h = atom.GetTotalNumHs()
-        atom.SetNumExplicitHs(max(0, num_h - 1))
-
     # Add bonds for the new fragment
     for bond in trial_frag.GetBonds():
         trial_combined_mol.AddBond(
@@ -310,12 +325,21 @@ def try_to_connect_fragments(combined_mol, frag, atom1, atom2):
             bond.GetBondType(),
         )
 
+    # Add the connection after the complete fragment graph is present. RDKit
+    # recalculates implicit hydrogens during sanitization, so manually changing
+    # hydrogen counts here would leave the property cache inconsistent.
+    trial_combined_mol.AddBond(
+        atom1.GetIdx(), new_indices[atom2.GetIdx()], Chem.BondType.SINGLE
+    )
+    if not _update_property_cache(trial_combined_mol):
+        return None
+
     # Convert to a Mol object and try to sanitize it
     new_mol = Chem.Mol(trial_combined_mol)
     try:
         Chem.SanitizeMol(new_mol)
         return new_mol  # Return the new valid molecule
-    except Chem.MolSanitizeException:
+    except Exception:
         return None  # If the molecule is not valid, return None
 
 
