@@ -1,11 +1,9 @@
 # Graph-DiT polymer generation
 
-This workflow has two stages:
-
-1. pretrain an unconditional polymer generator on RPPD for a local baseline or
-   on PI1M for the server model;
-2. initialize a conditional model from that checkpoint and fine-tune it on RPPD
-   property labels.
+The active server workflow starts from the downloaded open-source `model.pt`
+bundle and fine-tunes exact RPPD property combinations. The original bundle is
+also retained for generation without property conditions. Older `best_model.pt`
+checkpoints from the local training workflow are not used by the application.
 
 Run commands from the repository root in the `torch-molecule` environment.
 
@@ -14,7 +12,7 @@ Run commands from the repository root in the `torch-molecule` environment.
 The Hugging Face checkpoint bundle is stored at:
 
 ```text
-train_graphdit/pretrained/llamole_pretrained_graphdit/
+./train_graphdit/pretrained/llamole_pretrained_graphdit/
 ├── model.pt
 ├── config.yaml
 └── data.meta.json
@@ -26,7 +24,7 @@ learned tensors, `config.yaml` stores architecture and diffusion settings, and
 classes that connect those tensors are supplied by:
 
 ```text
-train_graphdit/llamole_graphdit/
+./train_graphdit/llamole_graphdit/
 ```
 
 These files must also be present on the H20 server. The original project assumes
@@ -38,13 +36,13 @@ implementation because its layer names and tensor shapes differ.
 The minimum server layout for this fine-tuning workflow is:
 
 ```text
-data/
+./data/
 └── 20260920_rppd.csv
-data_process/
+./data_process/
 └── common.py
-train_grin/
+./train_grin/
 └── properties.py
-train_graphdit/
+./train_graphdit/
 ├── common.py
 ├── finetune_llamole_graphdit.py
 ├── llamole_graphdit/
@@ -68,20 +66,24 @@ is the simplest way to reproduce this layout. Git does not include `model.pt`.
 Validate the bundle and the requested RPPD columns without starting training:
 
 ```bash
-python train_graphdit/finetune_llamole_graphdit.py \
+python ./train_graphdit/finetune_llamole_graphdit.py \
+  --pretrained-dir ./train_graphdit/pretrained/llamole_pretrained_graphdit \
+  --input ./data/20260920_rppd.csv \
   --property density,tg \
-  --output-dir train_graphdit/output/rppd_density_tg_llamole \
+  --output-dir ./train_graphdit/output/rppd_finetuned/density.tg \
+  --device cuda \
+  --precision bf16 \
   --check-only
 ```
 
 Fine-tune one joint density and Tg model on a CUDA server:
 
 ```bash
-python train_graphdit/finetune_llamole_graphdit.py \
-  --pretrained-dir train_graphdit/pretrained/llamole_pretrained_graphdit \
-  --input data/20260920_rppd.csv \
+python ./train_graphdit/finetune_llamole_graphdit.py \
+  --pretrained-dir ./train_graphdit/pretrained/llamole_pretrained_graphdit \
+  --input ./data/20260920_rppd.csv \
   --property density,tg \
-  --output-dir train_graphdit/output/rppd_density_tg_llamole \
+  --output-dir ./train_graphdit/output/rppd_finetuned/density.tg \
   --device cuda \
   --precision bf16 \
   --batch-size 1 \
@@ -91,13 +93,86 @@ python train_graphdit/finetune_llamole_graphdit.py \
   --patience 30
 ```
 
+Fine-tune a single density model:
+
+```bash
+python ./train_graphdit/finetune_llamole_graphdit.py \
+  --pretrained-dir ./train_graphdit/pretrained/llamole_pretrained_graphdit \
+  --input ./data/20260920_rppd.csv \
+  --property density \
+  --output-dir ./train_graphdit/output/rppd_finetuned/density \
+  --device cuda \
+  --precision bf16 \
+  --batch-size 1 \
+  --gradient-accumulation 16 \
+  --learning-rate 5e-5 \
+  --epochs 200 \
+  --patience 30
+```
+
+For three simultaneous targets, provide them together to `--property`:
+
+```bash
+python ./train_graphdit/finetune_llamole_graphdit.py \
+  --pretrained-dir ./train_graphdit/pretrained/llamole_pretrained_graphdit \
+  --input ./data/20260920_rppd.csv \
+  --property density,tg,thermal_conductivity \
+  --output-dir ./train_graphdit/output/rppd_finetuned/density.tg.thermal_conductivity \
+  --device cuda \
+  --precision bf16 \
+  --batch-size 1 \
+  --gradient-accumulation 16 \
+  --learning-rate 5e-5 \
+  --epochs 200 \
+  --patience 30
+```
+
+## Fine-tuned output naming
+
+Place every served model below one root and use alphabetically ordered property
+names joined by dots:
+
+```text
+./train_graphdit/output/rppd_finetuned/
+├── density/
+├── tg/
+├── density.tg/
+├── density.thermal_conductivity/
+└── density.tg.thermal_conductivity/
+```
+
+The directory name keeps the server easy to inspect. Model selection uses the
+property list saved in `standardization.json`, so it does not depend on the folder
+name. Each completed fine-tuned directory contains:
+
+```text
+model.pt
+config.yaml
+data.meta.json
+standardization.json
+training_config.json
+training_history.csv
+metrics.json
+last_training_state.pt
+prepared_data/
+```
+
+Use a fresh output directory for each run. The trainer refuses to overwrite a
+non-empty directory.
+
 The 16 GB starting configuration trains the two property encoders, the final two
 transformer blocks, and the output layer while keeping the rest of the downloaded
 574M-parameter model frozen. Gradient checkpointing is enabled. If memory is still
 insufficient, add `--last-layers 0` to train only the property encoders.
 
-This is a separate workflow from `finetune.py`, which only accepts checkpoints
-created by this repository's smaller Graph-DiT implementation.
+`finetune.py` and its `best_model.pt` checkpoints belong to the older local
+workflow and are not used by the current application.
+
+## Legacy local pretraining workflow
+
+The remaining sections document the earlier small-model experiments for
+reproducibility. Their `best_model.pt` outputs are not discovered by the current
+API or shown in the generator frontend.
 
 The PI1M source file in this repository is:
 
