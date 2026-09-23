@@ -4,10 +4,11 @@ Set ``GRIN_MODEL_RUN_DIR`` to one timestamped training output directory before
 starting the service. If it is unset, the newest run below
 ``train_grin/output_standardized`` is selected automatically.
 
-Set ``GRAPHDIT_MODEL_ROOT`` to a directory containing models fine-tuned from the
-downloaded ``model.pt`` bundle. Models are discovered recursively and matched by
-the exact property set recorded in each ``standardization.json``. Set
-``GRAPHDIT_UNCONDITIONAL_MODEL_DIR`` to the original open-source checkpoint bundle.
+Fine-tuned models are read from ``train_graphdit/output/rppd_finetuned`` by
+default. Set ``GRAPHDIT_MODEL_ROOT`` only to override that location. Models are
+discovered recursively and matched by the exact property set recorded in each
+``standardization.json``. Set ``GRAPHDIT_UNCONDITIONAL_MODEL_DIR`` to override the
+default original open-source checkpoint bundle.
 
 Example startup command (not executed by this module)::
 
@@ -45,6 +46,7 @@ from train_graphdit.llamole_graphdit import GraphDiT as LlamoleGraphDiT
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_RUNS_ROOT = REPOSITORY_ROOT / "train_grin" / "output_standardized"
+DEFAULT_GENERATION_ROOT = REPOSITORY_ROOT / "train_graphdit" / "output" / "rppd_finetuned"
 FRONTEND_ROOT = REPOSITORY_ROOT / "grin_frontend"
 ASSETS_ROOT = REPOSITORY_ROOT / "assets"
 PUBLIC_ASSETS = frozenset(
@@ -291,12 +293,12 @@ def load_standardization(property_dir: Path) -> tuple[str, float, float]:
 
 def resolve_generation_root() -> Path | None:
     configured = os.environ.get(GENERATOR_ROOT_ENV)
-    if not configured:
-        return None
-    path = Path(configured).expanduser()
-    if not path.is_absolute():
-        path = REPOSITORY_ROOT / path
-    return path.resolve()
+    if configured:
+        path = Path(configured).expanduser()
+        if not path.is_absolute():
+            path = REPOSITORY_ROOT / path
+        return path.resolve()
+    return DEFAULT_GENERATION_ROOT.resolve() if DEFAULT_GENERATION_ROOT.is_dir() else None
 
 
 def resolve_unconditional_generation_directory() -> Path | None:

@@ -160,6 +160,11 @@ prepared_data/
 Use a fresh output directory for each run. The trainer refuses to overwrite a
 non-empty directory.
 
+The API automatically scans `./train_graphdit/output/rppd_finetuned` recursively,
+so models saved with this naming convention appear in the generator frontend
+after the API process restarts. Set `GRAPHDIT_MODEL_ROOT` only when the fine-tuned
+model root is stored elsewhere.
+
 The 16 GB starting configuration trains the two property encoders, the final two
 transformer blocks, and the output layer while keeping the rest of the downloaded
 574M-parameter model frozen. Gradient checkpointing is enabled. If memory is still

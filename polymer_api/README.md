@@ -8,9 +8,10 @@ Configure two model locations:
 
 - `GRIN_MODEL_RUN_DIR`: one completed timestamped GRIN run containing property
   subdirectories and `grin_model.pt` checkpoints;
-- `GRAPHDIT_MODEL_ROOT`: a directory containing every available fine-tuned
-  conditional Graph-DiT model. Discovery is recursive, so single, duo, and trio
-  model directories may use any layout below this root;
+- `GRAPHDIT_MODEL_ROOT`: optional override for the directory containing every
+  fine-tuned conditional model. It defaults to
+  `./train_graphdit/output/rppd_finetuned`. Discovery is recursive, so single,
+  duo, and trio model directories may use any layout below this root;
 - `GRAPHDIT_UNCONDITIONAL_MODEL_DIR`: the base-model directory used when the user
   selects **No conditions**. If unset, the API uses
   `train_graphdit/pretrained/llamole_pretrained_graphdit` when it exists.
@@ -39,6 +40,10 @@ python -m uvicorn polymer_api.app:app \
   --host 127.0.0.1 --port 8000 --reload \
   --reload-dir polymer_api --reload-dir grin_frontend
 ```
+
+When both model directories use their default repository locations, the two
+`GRAPHDIT_...` variables may be omitted. Set them only when the server stores the
+models elsewhere.
 
 Use `POLYMER_API_DEVICE=cuda` on the H20. `GRIN_API_DEVICE` remains accepted as a
 legacy fallback. The predictor is served at `/`, the generator is a separate page
