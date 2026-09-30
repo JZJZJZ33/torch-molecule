@@ -4,10 +4,10 @@ from collections import Counter
 
 import numpy as np
 from rdkit.Chem import rdMolDescriptors
-from chain_builder import build_chain
-from conf_builder import build_mmff_conformer
-from system_builder import pack_chains
-from xtb_calc import _energy_from_output
+from polySIM.chain_builder import build_chain
+from polySIM.conf_builder import build_mmff_conformer
+from polySIM.system_builder import pack_chains
+from polySIM.xtb_calc import _energy_from_output
 
 
 def test_unmapped_pvdf_repeat_count_and_hydrogen_termination() -> None:

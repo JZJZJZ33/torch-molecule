@@ -182,14 +182,12 @@ single-chain GFN-FF/GFN-xTB calculations, and packs rigid chain copies into an
 approximate periodic box. The assembled multi-chain system is not optimized.
 
 ```bash
-cd polySIM
-python -m pip install -r requirements.txt
-python build_system.py \
-  --psmiles-file examples/pvdf.psmiles.txt \
+python -m polySIM.build_system \
+  --psmiles-file polySIM/examples/pvdf.psmiles.txt \
   --repeat-units 50 \
   --chains 30 \
   --xtb-method gfn2 \
-  --output-directory output/pvdf_30x50
+  --output-directory polySIM/output/pvdf_30x50
 ```
 
 See [`data_process/README.md`](data_process/README.md),
