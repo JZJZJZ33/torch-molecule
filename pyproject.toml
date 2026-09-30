@@ -54,6 +54,10 @@ include-package-data = true
     "**/*.json",
     "datasets/data/*",
 ]
+"polySIM" = [
+    "requirements.txt",
+    "examples/*.txt",
+]
 
 [tool.pytest.ini_options]
 addopts = "--verbose"

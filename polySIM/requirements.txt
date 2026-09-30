@@ -1,0 +1,10 @@
+# polySIM runtime dependencies.
+# stk 2026.x requires Python 3.11 or newer.
+numpy
+scipy>=1.14.1
+rdkit>=2023.9.5,!=2024.3.5
+stk>=2026.1.4.0
+
+# xTB is an external executable, not a Python package. Install it separately
+# (for example, `conda install -c conda-forge xtb`) and ensure `xtb` is on PATH.
+# The complete polySIM workflow is tested with xTB 6.5.1.

@@ -17,6 +17,26 @@ units (`B`), and a Br/H terminal unit (`C`). Thus the topology sequence is
 `A + B*(N-2) + C`, containing exactly `N` chemical repeat units. For `N=1`,
 both wildcard sites are replaced by hydrogen directly.
 
+## Installation requirements
+
+polySIM requires Python 3.11 or newer because the tested STK release requires
+it. Install the Python dependencies from the file kept inside this package:
+
+```bash
+python -m pip install -r polySIM/requirements.txt
+```
+
+Geometry optimization also requires the external `xtb` executable. It cannot
+be installed by `requirements.txt`; one supported installation route is:
+
+```bash
+conda install -c conda-forge xtb
+xtb --version
+```
+
+The full workflow is tested with STK 2026.1.4.0 and xTB 6.5.1. The chain and
+MMFF stages can run without xTB by passing `--xtb-method none`.
+
 ## pSMILES input
 
 Place exactly one pSMILES on a non-empty, non-comment line. Explicit head and
