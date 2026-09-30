@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "torch_molecule"
-version = "0.1.7"
+version = "0.1.8"
 description = "Deep learning packages for molecular discovery with a simple sklearn-style interface"
 authors = [{name = "Gang Liu", email = "gliu7@nd.edu"}]
 readme = "README.md"
@@ -25,6 +25,7 @@ dependencies = [
     "rdkit>=2023.9.5",
     "scikit_learn>=1.2.2",
     "scipy>=1.14.1",
+    "stk",
     "tqdm>=4.66.2",
     "optuna>=4.0.0",
 ]
@@ -35,7 +36,7 @@ dependencies = [
 "Documentation" = "https://liugangcode.github.io/torch-molecule/"
 
 [tool.setuptools.packages.find]
-include = ["torch_molecule*"]
+include = ["torch_molecule*", "polySIM*"]
 exclude = [
     "private*", 
     "tests*", 

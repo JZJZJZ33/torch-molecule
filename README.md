@@ -78,6 +78,7 @@ train_grin/     standardized multi-property GRIN training and evaluation
 model_evaluation/ fingerprint baselines and leakage-safe GRIN cross-validation
 polymer_api/    GRIN prediction, Graph-DiT generation, and structure rendering
 grin_frontend/  Predictor interface served by the API
+polySIM/         pSMILES-to-chain construction, xTB optimization, and box packing
 ```
 
 The repository includes the source RPPD export, cleaned dataset, and first
@@ -173,9 +174,27 @@ drawing. The page is delivered as
 one self-contained HTML response, so a separate static-file server is unnecessary.
 Model inference is local and does not require Hugging Face access.
 
+### Build polymer structures with polySIM
+
+`polySIM` converts a two-ended repeat-unit pSMILES into a hydrogen-terminated
+finite chain, generates and MMFF-optimizes a 3D conformer, performs optional
+single-chain GFN-FF/GFN-xTB calculations, and packs rigid chain copies into an
+approximate periodic box. The assembled multi-chain system is not optimized.
+
+```bash
+python -m polySIM.build_system \
+  --psmiles-file polySIM/examples/pvdf.psmiles.txt \
+  --repeat-units 50 \
+  --chains 30 \
+  --xtb-method gfn2 \
+  --output-directory polySIM/output/pvdf_30x50
+```
+
 See [`data_process/README.md`](data_process/README.md),
 [`train_grin/README.md`](train_grin/README.md), and
-[`polymer_api/README.md`](polymer_api/README.md) for detailed options and API examples.
+[`polymer_api/README.md`](polymer_api/README.md) for model and application
+details. See [`polySIM/README.md`](polySIM/README.md) for polymer-building
+options and output descriptions.
 
 ## Usage
 

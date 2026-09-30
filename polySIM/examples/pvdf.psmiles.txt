@@ -1,0 +1,2 @@
+# PVDF repeat unit; the first [*] is the head and the second is the tail.
+[*]CC(F)(F)[*]
