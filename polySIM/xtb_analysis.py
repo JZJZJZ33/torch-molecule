@@ -13,10 +13,7 @@ from pathlib import Path
 
 import numpy as np
 
-try:
-    from .xyz_io import read_xyz
-except ImportError:  # Direct script execution.
-    from xyz_io import read_xyz
+from xyz_io import read_xyz
 
 
 ENERGY_PATTERN = re.compile(

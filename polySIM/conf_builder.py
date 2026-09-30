@@ -10,10 +10,7 @@ from pathlib import Path
 from rdkit import Chem
 from rdkit.Chem import AllChem, rdMolDescriptors
 
-try:
-    from .xyz_io import write_xyz
-except ImportError:  # Direct script execution.
-    from xyz_io import write_xyz
+from xyz_io import write_xyz
 
 
 @dataclass(frozen=True)

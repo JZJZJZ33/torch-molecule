@@ -19,11 +19,13 @@ both wildcard sites are replaced by hydrogen directly.
 
 ## Installation requirements
 
-polySIM requires Python 3.11 or newer because the tested STK release requires
-it. Install the Python dependencies from the file kept inside this package:
+polySIM is currently a standalone script folder, not an installed Python
+package. Enter the folder first, then install its local requirements. Python
+3.11 or newer is required because the tested STK release requires it:
 
 ```bash
-python -m pip install -r polySIM/requirements.txt
+cd polySIM
+python -m pip install -r requirements.txt
 ```
 
 Geometry optimization also requires the external `xtb` executable. It cannot
@@ -62,17 +64,18 @@ bond-order changes are never silent.
 
 ## One-command workflow
 
-From the repository root:
+Run the workflow from inside the `polySIM` folder:
 
 ```bash
-PYTHONPATH=. python -m polySIM.build_system \
-  --psmiles-file polySIM/examples/pvdf.psmiles.txt \
+cd polySIM
+python build_system.py \
+  --psmiles-file examples/pvdf.psmiles.txt \
   --repeat-units 50 \
   --chains 30 \
   --xtb-method gfn2 \
   --density 0.3 \
   --minimum-distance 2.0 \
-  --output-directory polySIM/output/pvdf_30x50
+  --output-directory output/pvdf_30x50
 ```
 
 The default is a staged single-chain calculation: GFN-FF geometry optimization
@@ -110,7 +113,7 @@ Kabsch RMSD filtering, avoiding unreliable bond inference from XYZ files.
 Standalone usage:
 
 ```bash
-PYTHONPATH=. python -m polySIM.xtb_analysis \
+python xtb_analysis.py \
   --input-directory path/to/xtb/results \
   --output-directory path/to/analysis \
   --rmsd-threshold 2.0 \
@@ -145,4 +148,5 @@ system_builder.py -> unoptimized approximate multi-chain box
 build_system.py   -> complete orchestration
 ```
 
-Use `python -m polySIM.<module> --help` for all options.
+Run these scripts from inside `polySIM`. Use `python <script>.py --help` for all
+options, for example `python build_system.py --help`.

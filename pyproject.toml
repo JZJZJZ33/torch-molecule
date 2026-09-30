@@ -25,7 +25,6 @@ dependencies = [
     "rdkit>=2023.9.5",
     "scikit_learn>=1.2.2",
     "scipy>=1.14.1",
-    "stk",
     "tqdm>=4.66.2",
     "optuna>=4.0.0",
 ]
@@ -36,7 +35,7 @@ dependencies = [
 "Documentation" = "https://liugangcode.github.io/torch-molecule/"
 
 [tool.setuptools.packages.find]
-include = ["torch_molecule*", "polySIM*"]
+include = ["torch_molecule*"]
 exclude = [
     "private*", 
     "tests*", 
@@ -53,10 +52,6 @@ include-package-data = true
     "**/*.yaml",
     "**/*.json",
     "datasets/data/*",
-]
-"polySIM" = [
-    "requirements.txt",
-    "examples/*.txt",
 ]
 
 [tool.pytest.ini_options]

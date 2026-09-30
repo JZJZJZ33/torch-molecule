@@ -17,20 +17,12 @@ from pathlib import Path
 
 from rdkit.Chem import rdMolDescriptors
 
-try:
-    from .chain_builder import build_chain, read_psmiles_file, save_chain
-    from .conf_builder import build_mmff_conformer, save_conformer, save_conformer_sdf
-    from .system_builder import pack_chains, save_system
-    from .xtb_analysis import analyze_results
-    from .xtb_calc import run_xtb
-    from .xyz_io import read_xyz
-except ImportError:  # Direct script execution.
-    from chain_builder import build_chain, read_psmiles_file, save_chain
-    from conf_builder import build_mmff_conformer, save_conformer, save_conformer_sdf
-    from system_builder import pack_chains, save_system
-    from xtb_analysis import analyze_results
-    from xtb_calc import run_xtb
-    from xyz_io import read_xyz
+from chain_builder import build_chain, read_psmiles_file, save_chain
+from conf_builder import build_mmff_conformer, save_conformer, save_conformer_sdf
+from system_builder import pack_chains, save_system
+from xtb_analysis import analyze_results
+from xtb_calc import run_xtb
+from xyz_io import read_xyz
 
 
 XTB_METHODS = ("none", "gfn0", "gfn1", "gfn2", "gfnff")
